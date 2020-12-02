@@ -244,7 +244,7 @@ async def connect(host, port, context=None):
 	logger.debug("Connecting TLS client to %s:%s", host, port)
 	if context:
 		context = context.get()
-	async with await anyio.connect_tcp(host, port, ssl_context=context) as stream:
+	async with await anyio.connect_tcp(host, port, ssl_context=context, tls_standard_compatible=False) as stream:
 		yield TLSClient(stream)
 
 @contextlib.asynccontextmanager
@@ -252,7 +252,7 @@ async def create_listener(host, port, context):
 	listener = await anyio.create_tcp_listener(local_host=host, local_port=port)
 	async with listener:
 		if context:
-			listener = anyio.streams.tls.TLSListener(listener, context.get())
+			listener = anyio.streams.tls.TLSListener(listener, context.get(), False)
 			async with listener:
 				yield listener
 		else:
