@@ -18,10 +18,10 @@ setuptools.setup(
 	license = "MIT",
 	
 	install_requires=[
-		'anyio >= 2.0.0',
-		'cryptography',
-		'pyopenssl',
-		'netifaces',
-		'pycryptodome'
+		"anyio >= 2.0.0",
+		"cryptography",
+		"pyopenssl",
+		"netifaces",
+		"pycryptodome"
 	]
 )
