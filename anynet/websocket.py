@@ -1,5 +1,5 @@
 
-from anynet import tls, http, util
+from anynet import tls, http, util, queue
 import contextlib
 import secrets
 import hashlib
@@ -42,7 +42,7 @@ class WSPacketClient:
 		self.client = client
 		self.group = group
 	
-		self.packets = util.create_queue()
+		self.packets = queue.create()
 		
 		self.buffer = b""
 		self.fragments = None
@@ -85,7 +85,6 @@ class WSPacketClient:
 		
 		while b"\r\n\r\n" not in self.buffer:
 			self.buffer += await self.client.recv()
-		
 		index = self.buffer.index(b"\r\n\r\n")
 		header = self.buffer[:index + 4]
 		self.buffer = self.buffer[index + 4:]
@@ -141,7 +140,7 @@ class WSPacketClient:
 				self.buffer += await self.client.recv()
 			except anyio.EndOfStream:
 				logger.debug("WS: connection was closed")
-				await self.packets.aclose()
+				await self.packets.close()
 				return
 			
 	async def process_buffer(self):
@@ -192,12 +191,12 @@ class WSPacketClient:
 				packet = WSPacket(self.message_type, self.fragments)
 				self.message_type = None
 				self.fragments = None
-				await self.packets.send(packet)
+				await self.packets.put(packet)
 		else:
 			if not fin:
 				raise WSError("Control frame must have FIN set")
 			packet = WSPacket(opcode, payload)
-			await self.packets.send(packet)
+			await self.packets.put(packet)
 			
 	async def send(self, opcode, payload=b""):
 		data = bytes([0x80 | opcode])
@@ -220,7 +219,7 @@ class WSPacketClient:
 		await self.client.send(data)
 		
 	async def recv(self):
-		return await self.packets.receive()
+		return await self.packets.get()
 	
 	def local_address(self): return self.client.local_address()
 	def remote_address(self): return self.client.remote_address()
@@ -232,8 +231,8 @@ class WebSocketClient:
 		self.client = WSPacketClient(client, group)
 		self.group = group
 		
-		self.binary_packets = util.create_queue()
-		self.text_packets = util.create_queue()
+		self.binary_packets = queue.create()
+		self.text_packets = queue.create()
 	
 	async def __aenter__(self): return self
 	async def __aexit__(self, typ, exc, tb):
@@ -260,9 +259,9 @@ class WebSocketClient:
 	
 	async def process_packet(self, opcode, payload):
 		if opcode == OPCODE_BINARY:
-			await self.binary_packets.send(payload)
+			await self.binary_packets.put(payload)
 		elif opcode == OPCODE_TEXT:
-			await self.text_packets.send(payload.decode())
+			await self.text_packets.put(payload.decode())
 		elif opcode == OPCODE_PING:
 			await self.client.send(OPCODE_PONG, payload)
 		elif opcode == OPCODE_DISCONNECT:
@@ -272,15 +271,16 @@ class WebSocketClient:
 			raise ValueError("WS packet has unknown opcode: %i" %opcode)
 	
 	async def stop(self):
-		async with anyio.open_cancel_scope(shield=True):
-			await self.group.cancel_scope.cancel()
-			await self.binary_packets.aclose()
-			await self.text_packets.aclose()
+		await self.binary_packets.close()
+		await self.text_packets.close()
 		
 	async def close(self):
 		logger.debug("Closing WS connection")
 		await self.stop()
-		await self.client.send(OPCODE_DISCONNECT)
+		try:
+			await self.client.send(OPCODE_DISCONNECT)
+		except BrokenPipeError:
+			pass
 		logger.debug("WS connection is closed")
 			
 	async def send(self, data):
@@ -289,9 +289,9 @@ class WebSocketClient:
 		await self.client.send(OPCODE_TEXT, text.encode())
 
 	async def recv(self):
-		return await self.binary_packets.receive()
+		return await self.binary_packets.get()
 	async def recv_text(self):
-		return await self.text_packets.receive()
+		return await self.text_packets.get()
 		
 	def local_address(self): return self.client.local_address()
 	def remote_address(self): return self.client.remote_address()
@@ -317,7 +317,7 @@ async def connect(url, context=None, *, protocols=None):
 	
 	server = util.make_url(None, host, port, None)
 	async with http.connect(server, context) as client:
-		async with anyio.create_task_group() as group:
+		async with util.create_task_group() as group:
 			client = WebSocketClient(client, group)
 			async with client:
 				await client.start_handshake(host, path, protocols)
@@ -332,7 +332,7 @@ async def serve(handler, host="", port=0, context=None, *, path="/", protocol=No
 		host, port = client.remote_address()
 		logger.debug("New WS connection: %s:%i", host, port)
 		
-		async with anyio.create_task_group() as group:
+		async with util.create_task_group() as group:
 			async with WebSocketClient(client, group) as client:
 				if await client.accept_handshake(path, protocol):
 					await handler(client)

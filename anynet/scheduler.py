@@ -1,4 +1,5 @@
 
+from anynet import util
 import contextlib
 import itertools
 import anyio
@@ -57,12 +58,14 @@ class Scheduler:
 	def remove(self, handle):
 		if handle in self.events:
 			del self.events[handle]
+	
+	def remove_all(self):
+		self.events = {}
 
 
 @contextlib.asynccontextmanager
 async def create():
-	async with anyio.create_task_group() as group:
+	async with util.create_task_group() as group:
 		scheduler = Scheduler(group)
 		await scheduler.start()
 		yield scheduler
-		await group.cancel_scope.cancel()

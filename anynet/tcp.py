@@ -11,9 +11,11 @@ logger = logging.getLogger(__name__)
 class TCPClient:
 	def __init__(self, stream):
 		self.stream = stream
+		self.lock = anyio.create_lock()
 	
 	async def send(self, data):
-		await self.stream.send(data)
+		async with self.lock:
+			await self.stream.send(data)
 	async def recv(self, num=65536):
 		return await self.stream.receive(num)
 	
@@ -43,7 +45,6 @@ async def serve(handler, host="", port=0):
 	
 	listener = await anyio.create_tcp_listener(local_host=host, local_port=port)
 	async with listener:
-		async with anyio.create_task_group() as group:
+		async with util.create_task_group() as group:
 			await group.spawn(listener.serve, handle)
 			yield
-			await group.cancel_scope.cancel()

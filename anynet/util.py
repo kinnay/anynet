@@ -68,9 +68,11 @@ def make_url(scheme, host, port, path):
 		url += path
 	return url
 
-def create_queue():
-	send, recv = anyio.create_memory_object_stream(math.inf)
-	return anyio.streams.stapled.StapledObjectStream(send, recv)
+@contextlib.asynccontextmanager
+async def create_task_group():
+	async with anyio.create_task_group() as group:
+		yield group
+		await group.cancel_scope.cancel()
 
 @contextlib.contextmanager
 def catch(cls):
@@ -80,11 +82,11 @@ def catch(cls):
 		filtered = []
 		for exc in e.exceptions:
 			if isinstance(exc, cls):
-				logger.error("An exception occurred: %r", exc)
+				logger.exception("An exception occurred")
 			else:
 				filtered.append(exc)
 		e.exceptions = filtered
 		if filtered:
 			raise
 	except cls as e:
-		logger.error("An exception occurred: %r", e)
+		logger.exception("An exception occurred")

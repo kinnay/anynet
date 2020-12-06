@@ -222,9 +222,11 @@ class TLSServerContext:
 class TLSClient:
 	def __init__(self, stream):
 		self.stream = stream
+		self.lock = anyio.create_lock()
 		
 	async def send(self, data):
-		await self.stream.send(data)
+		async with self.lock:
+			await self.stream.send(data)
 	async def recv(self, num=65536):
 		return await self.stream.receive(num)
 	
@@ -271,7 +273,6 @@ async def serve(handler, host="", port=0, context=None):
 	
 	logger.info("Starting TLS server at %s:%i", host, port)
 	async with create_listener(host, port, context) as listener:
-		async with anyio.create_task_group() as group:
+		async with util.create_task_group() as group:
 			await group.spawn(listener.serve, handle)
 			yield
-			await group.cancel_scope.cancel()
