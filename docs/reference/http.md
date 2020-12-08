@@ -25,13 +25,13 @@ Provides HTTP-related classes, including a client and a server. Note that this i
 <code>**async def delete**(url: str, \*\*kwargs) -> [HTTPResponse](#httpresponse)</code><br>
 <span class="docs">Performs a `GET`, `POST`, `PUT`, `PATCH` or `DELETE` request. These methods are provided for convenience.<br><br>`url` must contain at least the hostname or IP address of the server, and the path of the HTTP request. Scheme and port are optional. Example: `https://example.com:8080/test.html`.<br><br>The following keyword arguments may be provided to initialize the HTTP request: `headers`, `body`, `text`, `files`, `boundary`, `form`, `plainform`, `json`, `xml`, `params`, and `continue_threshold`. If no `Host` header is given it is filled in automatically based on the given `url`.<br><br>Other keyword arguments are passed on to `request()`.</span>
 
-<code>**async def request**(url: str, req: [HTTPRequest](#httprequest), context: [TLSClientContext](../tls#tlsclientcontext) = None, \*\*kwargs) -> [HTTPResponse](#httpresponse)</code><br>
+<code>**async def request**(url: str, req: [HTTPRequest](#httprequest), context: [TLSContext](../tls#tlscontext) = None, \*\*kwargs) -> [HTTPResponse](#httpresponse)</code><br>
 <span class="docs">Performs an HTTP request on a new connection.<br><br>`url` must contain at least the hostname or IP address of the server. Scheme and port are optional. Example: `https://example:8080`.<br><br>If no scheme is provided, the connection is secured with TLS precisely if a TLS context is provided. If the scheme is `https` but no TLS context is provided the connection is secured with the default TLS context.<br><br>The keyword arguments are forwarded to [`HTTPClient.request`](#httpclient).</span>
 
-<code>**async with connect**(url: str, context: [TLSClientContext](../tls#tlsclientcontext) = None) -> [HTTPClient](#httpclient)</code><br>
+<code>**async with connect**(url: str, context: [TLSContext](../tls#tlscontext) = None) -> [HTTPClient](#httpclient)</code><br>
 <span class="docs">Creates a reusable connection with the server. Blocks until the connection is ready. The parameters `url` and `context` have the same meaning as in `request()`.<br><br>[`HTTPClient`](#httpclient) is not task-safe. Do not try to perform multiple request on a single client concurrently.</span>
 
-<code>**async with serve**(handler: Callable, host: str = "", port: int = 0, context: [TLSServerContext](../tls#tlsservercontext) = None) -> None</code><br>
+<code>**async with serve**(handler: Callable, host: str = "", port: int = 0, context: [TLSContext](../tls#tlscontext) = None) -> None</code><br>
 <span class="docs">Creates an HTTP server at the given address. If `host` is empty, the local address of the default interface is used. If `port` is 0, it is chosen by the operating system. If `context` is provided, the server is secured with TLS.<br><br>
 `handler` must be an `async` function that takes a [`TLSClient`](../tls#tlsclient) and an [`HTTPRequest`](#httprequest) and returns an [`HTTPResponse`](#httpresponse). It's possible to call blocking functions in `handler`, because the HTTP server spawns a new task for each request. If `handler` raises an exception the server sends an empty HTTP response with status code `500` to the client. If `handler` returns `None`, no response is sent back to the client.</span>
 

@@ -29,10 +29,10 @@ async def test_tls():
 	cert.issuer["CN"] = NAME
 	cert.sign(pkey)
 	
-	context = tls.TLSServerContext()
+	context = tls.TLSContext()
 	context.set_certificate(cert, pkey)
 	async with tls.serve(handler, IP, 12345, context):
-		context = tls.TLSClientContext()
+		context = tls.TLSContext()
 		context.set_authority(cert)
 		async with tls.connect(NAME, 12345, context) as client:
 			assert client.remote_address() == (IP, 12345)

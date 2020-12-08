@@ -12,19 +12,16 @@ Provides classes to work with TCP/TLS connections.
 <code>**class** [TLSPrivateKey](#tlsprivatekey)</code><br>
 <span class="docs">An RSA private key.</span>
 
-<code>**class** [TLSClientContext](#tlsclientcontext)</code><br>
-<span class="docs">A TLS context for clients.</span>
-
-<code>**class** [TLSServerContext](#tlsservercontext)</code><br>
-<span class="docs">A TLS context for servers.</span>
+<code>**class** [TLSContext](#tlscontext)</code><br>
+<span class="docs">A TLS context.</span>
 
 <code>**class** [TLSClient](#tlsclient)</code><br>
 <span class="docs">A TCP client with TLS support.</span>
 
-<code>**async with connect**(host: str, port: int, context: [TLSClientContext](#tlsclientcontext) = None) -> [TLSClient](#tlsclient)</code><br>
+<code>**async with connect**(host: str, port: int, context: [TLSContext](#tlscontext) = None) -> [TLSClient](#tlsclient)</code><br>
 <span class="docs">Creates a TCP/TLS client and connects it to the given address. Blocks until the connection is ready and the TLS handshake has been performed. If no context is provided, the client uses plain TCP without TLS.</span>
 
-<code>**async with serve**(handler: Callable, host: str = "", port: int = 0, context: [TLSServerContext](#tlsservercontext) = None) -> None</code><br>
+<code>**async with serve**(handler: Callable, host: str = "", port: int = 0, context: [TLSContext](#tlscontext) = None) -> None</code><br>
 <span class="docs">Creates a TCP/TLS server and binds it to the given address. If `host` is empty, the local address of the default interface is used. If `port` is 0, it is chosen by the operating system. `handler` must be an `async` function that accepts a [`TLSClient`](#tlsclient). The client is closed automatically when `handler` returns. If no context is provided, the server uses plain TCP without TLS.</span>
 
 ## Global Constants
@@ -104,30 +101,20 @@ This class should not be instantiated directly. Instead, one of the static metho
 <code>**def generate**(size: int = 2048) -> [TLSPrivateKey](#tlsprivatekey)</code><br>
 <span class="docs">Generates a random private key with the given number of bits.</span>
 
-## TLSClientContext
+## TLSContext
 <code>**def _\_init__**(version: int = VERSION_TLS)</code><br>
-<span class="docs">Creates a new TLS context with the given version number. By default, no client certificate is used and server certificates are verified with default CAs.</span>
+<span class="docs">Creates a new TLS context with the given version number.</span>
 
 <code>**def set_certificate**(cert: [TLSCertificate](#tlscertificate), key: [TLSPrivateKey](#tlsprivatekey)) -> None</code><br>
-<span class="docs">Specifies the client certificate and its private key.</span>
+<span class="docs">Specifies the certificate and its private key. If you want to provide intermediate certificates as well, use the `set_certificaet_chain` method instead.</span>
+
+<code>**def set_certificate_chain**(certs: list[[TLSCertificate](#tlscertificate)], key: [TLSPrivateKey](#tlsprivatekey)) -> None</code><br>
+<span class="docs">Specifies a list of certificates and the private key.</span>
 
 <code>**def set_authority**(cert: [TLSCertificate](#tlscertificate)) -> None</code><br>
-<span class="docs">Verifies the server certificate with the given CA instead of the default CAs.</span>
+<span class="docs">Verifies the certificate with the given CA.</span>
 
-<code>**def get**() -> ssl.SSLContext</code><br>
-<span class="docs">Returns the TLS context as a standard `ssl.SSLContext`.</span>
-
-## TLSServerContext
-<code>**def _\_init__**(version: int = VERSION_TLS)</code><br>
-<span class="docs">Creates a new TLS context with the given version number. The server certificate must be specified manually with one of the functions below. No client certificate is required by default.</span>
-
-<code>**def set_certificate**(cert: [TLSCertificate](#tlscertificate), key: [TLSPrivateKey](#tlsprivatekey)) -> None</code><br>
-<span class="docs">Specifies the server certificate and its private key.</span>
-
-<code>**def set_authority**(cert: [TLSCertificate](#tlscertificate)) -> None</code><br>
-<span class="docs">Verifies the client certificate with the given CA.</span>
-
-<code>**def get**() -> ssl.SSLContext</code><br>
+<code>**def get**(server: bool) -> ssl.SSLContext</code><br>
 <span class="docs">Returns the TLS context as a standard `ssl.SSLContext`.</span>
 
 ## TLSClient

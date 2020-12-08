@@ -368,11 +368,11 @@ class TestHTTPServer:
 		clientcert.sign(authoritykey)
 		
 		# Create TLS context for the server
-		servercontext = tls.TLSServerContext()
+		servercontext = tls.TLSContext()
 		servercontext.set_certificate(servercert, serverkey)
 		servercontext.set_authority(authoritycert)
 		
-		clientcontext = tls.TLSClientContext()
+		clientcontext = tls.TLSContext()
 		clientcontext.set_certificate(clientcert, clientkey)
 		clientcontext.set_authority(servercert)
 		

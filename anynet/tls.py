@@ -30,11 +30,12 @@ VersionMap = {
 }
 
 
-def set_certificate(context, cert, key):
+def set_certificate_chain(context, certs, key):
 	certfile = tempfile.NamedTemporaryFile(delete=False)
 	keyfile = tempfile.NamedTemporaryFile(delete=False)
 	
-	certfile.write(cert.encode(TYPE_PEM))
+	for cert in certs:
+		certfile.write(cert.encode(TYPE_PEM))
 	keyfile.write(key.encode(TYPE_PEM))
 	
 	certfile.close()
@@ -158,54 +159,33 @@ class TLSPrivateKey:
 		return cls(pkey)
 
 
-class TLSClientContext:
+class TLSContext:
 	def __init__(self, version=VERSION_TLS):
 		self.version = version
 		self.authority = None
-		self.cert = None
+		self.certs = None
 		self.key = None
-
+	
 	def set_certificate(self, cert, key):
-		self.cert = cert
+		self.certs = [cert]
+		self.key = key
+	
+	def set_certificate_chain(self, certs, key):
+		self.certs = certs
 		self.key = key
 	
 	def set_authority(self, authority):
 		self.authority = authority
 	
-	def get(self):
-		context = ssl.SSLContext(VersionMap[self.version])
-		if self.cert and self.key:
-			set_certificate(context, self.cert, self.key)
-		
-		context.verify_mode = ssl.CERT_REQUIRED
-		if self.authority:
-			data = self.authority.encode(TYPE_DER)
-			context.load_verify_locations(cadata=data)
-		else:
-			context.load_default_certs()
-		
-		context.check_hostname = True
-		return context
-
-		
-class TLSServerContext:
-	def __init__(self, version=VERSION_TLS):
-		self.version = version
-		self.authority = None
-		self.cert = None
-		self.key = None
-
-	def set_certificate(self, cert, key):
-		self.cert = cert
-		self.key = key
+	def get(self, server):
+		if server:
+			return self.make_server_context()
+		return self.make_client_context()
 	
-	def set_authority(self, authority):
-		self.authority = authority
-	
-	def get(self):
+	def make_server_context(self):
 		context = ssl.SSLContext(VersionMap[self.version])
-		if self.cert and self.key:
-			set_certificate(context, self.cert, self.key)
+		if self.certs and self.key:
+			set_certificate_chain(context, self.certs, self.key)
 		else:
 			raise ValueError("Please provide a server certificate")
 		
@@ -216,6 +196,21 @@ class TLSServerContext:
 			context.verify_mode = ssl.CERT_REQUIRED
 
 		context.check_hostname = False
+		return context
+	
+	def make_client_context(self):
+		context = ssl.SSLContext(VersionMap[self.version])
+		if self.certs and self.key:
+			set_certificate_chain(context, self.certs, self.key)
+		
+		context.verify_mode = ssl.CERT_REQUIRED
+		if self.authority:
+			data = self.authority.encode(TYPE_DER)
+			context.load_verify_locations(cadata=data)
+		else:
+			context.load_default_certs()
+		
+		context.check_hostname = True
 		return context
 
 
@@ -245,7 +240,7 @@ class TLSClient:
 async def connect(host, port, context=None):
 	logger.debug("Connecting TLS client to %s:%s", host, port)
 	if context:
-		context = context.get()
+		context = context.get(False)
 	async with await anyio.connect_tcp(host, port, ssl_context=context, tls_standard_compatible=False) as stream:
 		yield TLSClient(stream)
 
@@ -254,7 +249,7 @@ async def create_listener(host, port, context):
 	listener = await anyio.create_tcp_listener(local_host=host, local_port=port)
 	async with listener:
 		if context:
-			listener = anyio.streams.tls.TLSListener(listener, context.get(), False)
+			listener = anyio.streams.tls.TLSListener(listener, context.get(True), False)
 			async with listener:
 				yield listener
 		else:
