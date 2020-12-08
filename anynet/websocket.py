@@ -37,6 +37,11 @@ class WSPacket:
 		self.payload = payload
 
 
+ERROR_DOCUMENT = """
+<!doctype html>
+<h1>%i - %s</h1>
+"""
+
 class WSPacketClient:
 	def __init__(self, client, group):
 		self.client = client
@@ -96,7 +101,7 @@ class WSPacketClient:
 			
 			response = http.HTTPResponse(status)
 			response.headers["Content-Type"] = "text/html"
-			response.text = "<h1>%i</h1><p>%s</p>" %(response.status_code, response.status_name)
+			response.text = ERROR_DOCUMENT %(response.status_code, response.status_name)
 			await self.client.send(response.encode())
 			return False
 			
