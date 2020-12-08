@@ -18,6 +18,9 @@ Provides classes to work with TCP/TLS connections.
 <code>**class** [TLSClient](#tlsclient)</code><br>
 <span class="docs">A TCP client with TLS support.</span>
 
+<code>**def load_certificate_chain**(filename: str) -> list[[TLSCertificate](#tlscertificate)]</code><br>
+<span class="docs">Loads one or more certificates from a PEM-encoded certificate chain file.</span>
+
 <code>**async with connect**(host: str, port: int, context: [TLSContext](#tlscontext) = None) -> [TLSClient](#tlsclient)</code><br>
 <span class="docs">Creates a TCP/TLS client and connects it to the given address. Blocks until the connection is ready and the TLS handshake has been performed. If no context is provided, the client uses plain TCP without TLS.</span>
 

@@ -8,7 +8,7 @@ long_description = \
 
 setuptools.setup(
 	name = "anynet",
-	version = "0.0.3",
+	version = "0.0.4",
 	description = "Networking library based on anyio",
 	long_description = long_description,
 	author = "Yannik Marchand",

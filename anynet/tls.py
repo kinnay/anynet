@@ -46,6 +46,17 @@ def set_certificate_chain(context, certs, key):
 	os.remove(certfile.name)
 	os.remove(keyfile.name)
 
+def load_certificate_chain(filename):
+	with open(filename, "rb") as f:
+		data = f.read()
+	
+	header = b"-----BEGIN CERTIFICATE-----"
+	
+	certs = []
+	for part in data.split(header)[1:]:
+		certs.append(TLSCertificate.parse(header + part, TYPE_PEM))
+	return certs
+
 
 class X509Name:
 	ITEMS = {
