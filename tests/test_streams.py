@@ -361,3 +361,8 @@ class TestBitStreamIn:
 		stream.bytealign()
 		assert stream.tellbits() == 8
 		assert stream.eof()
+	
+	def test_overflow(self):
+		stream = streams.BitStreamIn(b"", "<")
+		with pytest.raises(OverflowError):
+			stream.bit()

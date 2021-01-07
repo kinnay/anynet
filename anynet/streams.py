@@ -230,6 +230,9 @@ class BitStreamIn(StreamIn):
 		super().align(num)
 		
 	def bit(self):
+		if self.eof():
+			raise OverflowError("Buffer overflow")
+		
 		byte = self.data[self.pos]
 		value = (byte >> (7 - self.bitpos)) & 1
 		
