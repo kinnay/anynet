@@ -383,7 +383,7 @@ class HTTPResponse(HTTPMessage):
 		
 	def parse_start_line(self, line):
 		fields = line.split(maxsplit=2)
-		if len(fields) != 3:
+		if len(fields) not in [2, 3]:
 			raise HTTPError("Failed to parse HTTP response start line")
 		
 		self.version = fields[0]
@@ -393,7 +393,10 @@ class HTTPResponse(HTTPMessage):
 			raise HTTPError("HTTP response has invalid status code")
 		
 		self.status_code = int(fields[1])
-		self.status_name = fields[2]
+		
+		self.status_name = ""
+		if len(fields) == 3:
+			self.status_name = fields[2]
 		
 
 class HTTPParser:
