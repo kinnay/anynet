@@ -313,7 +313,7 @@ async def connect(url, context=None, *, protocols=None):
 		context = None
 	elif scheme == "wss":
 		if context is None:
-			context = tls.TLSClientContext()
+			context = tls.TLSContext()
 	elif scheme is not None:
 		raise ValueError("Invalid WS url scheme: %s" %scheme)
 	

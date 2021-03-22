@@ -611,7 +611,7 @@ async def connect(url, context=None):
 		context = None
 	elif scheme == "https":
 		if context is None:
-			context = tls.TLSClientContext()
+			context = tls.TLSContext()
 	elif scheme is not None:
 		raise ValueError("Invalid HTTP url scheme: %s" %scheme)
 	
