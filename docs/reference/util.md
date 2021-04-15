@@ -3,6 +3,12 @@
 
 Provides useful functions that didn't fit into another module.
 
+<code>**StreamError**: tuple = (
+    anyio.EndOfStream,
+    anyio.ClosedResourceError,
+    anyio.BrokenResourceError
+)</code>
+
 <code>**def is_decimal**(s: str) -> bool</code><br>
 <span class="docs">Returns `True` if `s` is non-empty and only contains decimal digits.</span>
 
@@ -16,10 +22,10 @@ Provides useful functions that didn't fit into another module.
 <span class="docs">Converts an integer to an IPv4 address string in big-endian byte order.</span>
 
 <code>**def local_address**() -> str</code><br>
-<span class="docs">Returns the local IPv4 address of the default interface. Raises `ConnectionError` if no IPv4 interface was found.</span>
+<span class="docs">Returns the local IPv4 address of the default gateway. Raises `ConnectionError` if no IPv4 interface was found.</span>
 
 <code>**def broadcast_address**() -> str</code><br>
-<span class="docs">Returns the IPv4 broadcast address of the default interface. Raises `ConnectionError` if no IPv4 interface was found.</span>
+<span class="docs">Returns the IPv4 broadcast address of the default gateway. Raises `ConnectionError` if no IPv4 interface was found.</span>
 
 <code>**def parse_url**(url: str) -> tuple[str, str, int, str]</code><br>
 <span class="docs">Parses the given URL and returns the tuple `(scheme, host, port, path)`. The `scheme`, `port` and `path` are set to `None` if they are not in the URL. Raises `ValueError` if the URL is invalid.</span>

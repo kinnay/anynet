@@ -17,4 +17,4 @@ Provides an implementation of the RC4 stream cipher.
 <span class="docs">Resets the RC4 stream to its initial state.</span>
 
 <code>**def crypt**(data: bytes) -> bytes</code><br>
-<span class="docs">Applies the RC4 stream to the given data. Due to the nature of RC4, this function can be used for both encryption and decryption.
+<span class="docs">Applies the RC4 stream to the given data. Due to the nature of RC4, this function can be used for both encryption and decryption.</span>

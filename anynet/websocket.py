@@ -143,8 +143,8 @@ class WSPacketClient:
 			await self.process_buffer()
 			try:
 				self.buffer += await self.client.recv()
-			except anyio.EndOfStream:
-				logger.debug("WS: connection was closed")
+			except util.StreamError:
+				logger.debug("WS: underlying connection was closed")
 				await self.packets.close()
 				return
 			
@@ -257,7 +257,7 @@ class WebSocketClient:
 		while True:
 			try:
 				packet = await self.client.recv()
-			except anyio.ClosedResourceError:
+			except util.StreamError:
 				await self.stop()
 				return
 			await self.process_packet(packet.opcode, packet.payload)

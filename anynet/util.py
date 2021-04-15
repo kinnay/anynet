@@ -11,6 +11,12 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+StreamError = (
+	anyio.EndOfStream, anyio.ClosedResourceError,
+	anyio.BrokenResourceError
+)
+
+
 def is_decimal(s):
 	return s.isdecimal()
 
