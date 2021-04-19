@@ -271,9 +271,14 @@ async def serve(handler, host="", port=0, context=None):
 	async def handle(stream):
 		with util.catch(Exception):
 			if context:
-				stream = await anyio.streams.tls.TLSStream.wrap(
-					stream, ssl_context=context.get(True), standard_compatible=False
-				)
+				try:
+					stream = await anyio.streams.tls.TLSStream.wrap(
+						stream, ssl_context=context.get(True), standard_compatible=False
+					)
+				except util.StreamError:
+					logger.warning("Failed to accept TLS handshake")
+					return
+			
 			async with stream:
 				await handler(TLSClient(stream))
 				logger.debug("Closing TLS connection")
