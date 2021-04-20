@@ -19,13 +19,48 @@ OPCODE_PING = 9
 OPCODE_PONG = 10
 
 
+def apply_mask(data, key):
+	return bytes([data[i] ^ key[i % 4] for i in range(len(data))])
+
 def calculate_key_hash(key):
 	string = key.encode("ascii") + b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 	hash = hashlib.sha1(string).digest()
 	return base64.b64encode(hash).decode()
+
+def check_handshake(request, protocol):
+	if request.method != "GET": return 405
 	
-def apply_mask(data, key):
-	return bytes([data[i] ^ key[i % 4] for i in range(len(data))])
+	if request.headers.get("Connection").lower() != "upgrade": return 400
+	if request.headers.get("Upgrade") != "websocket": return 400
+	
+	if "Sec-WebSocket-Key" not in request.headers: return 400
+	
+	if protocol is not None:
+		if "Sec-WebSocket-Protocol" not in request.headers:
+			return 400
+		
+		protocols = request.headers["Sec-WebSocket-Protocol"].split(", ")
+		if protocol not in protocols:
+			return 400
+	return 101
+
+def accept_handshake(request, protocol):
+	status = check_handshake(request, protocol)
+	if status != 101:
+		logger.info("WS handshake error: %i" %status)
+		return http.HTTPResponse(status)
+		
+	accept = calculate_key_hash(request.headers["Sec-WebSocket-Key"])
+	
+	response = http.HTTPResponse(101)
+	response.headers["Connection"] = "upgrade"
+	response.headers["Upgrade"] = "WebSocket"
+	response.headers["Sec-WebSocket-Accept"] = accept
+	if protocol is not None:
+		response.headers["Sec-WebSocket-Protocol"] = protocol
+	
+	logger.debug("WS handshake succeeded")
+	return response
 
 
 class WSError(Exception): pass
@@ -36,11 +71,6 @@ class WSPacket:
 		self.opcode = opcode
 		self.payload = payload
 
-
-ERROR_DOCUMENT = """
-<!doctype html>
-<h1>%i - %s</h1>
-"""
 
 class WSPacketClient:
 	def __init__(self, client, group):
@@ -55,7 +85,7 @@ class WSPacketClient:
 		
 		self.server_mode = False
 	
-	async def start_handshake(self, host, path, protocols):
+	async def start_client(self, host, path, protocols):
 		logger.debug("Performing WS handshake")
 		
 		self.server_mode = False
@@ -83,61 +113,9 @@ class WSPacketClient:
 		logger.debug("WS handshake succeeded")
 		await self.group.spawn(self.process)
 		
-	async def accept_handshake(self, path, protocol):
-		logger.debug("Accepting WS handshake")
-		
-		self.server_mode = True
-		
-		while b"\r\n\r\n" not in self.buffer:
-			self.buffer += await self.client.recv()
-		index = self.buffer.index(b"\r\n\r\n")
-		header = self.buffer[:index + 4]
-		self.buffer = self.buffer[index + 4:]
-		
-		request = http.HTTPRequest.parse(header)
-		status = self.check_handshake(request, path, protocol)
-		if status != 101:
-			logger.info("WS handshake error: %i" %status)
-			
-			response = http.HTTPResponse(status)
-			response.headers["Content-Type"] = "text/html"
-			response.text = ERROR_DOCUMENT %(response.status_code, response.status_name)
-			await self.client.send(response.encode())
-			return False
-			
-		accept = calculate_key_hash(request.headers["Sec-WebSocket-Key"])
-		
-		response = http.HTTPResponse(101)
-		response.headers["Connection"] = "upgrade"
-		response.headers["Upgrade"] = "WebSocket"
-		response.headers["Sec-WebSocket-Accept"] = accept
-		if protocol is not None:
-			response.headers["Sec-WebSocket-Protocol"] = protocol
-		await self.client.send(response.encode())
-		
-		logger.debug("WS handshake succeeded")
+	async def start_server(self):
 		await self.group.spawn(self.process)
-		
-		return True
 	
-	def check_handshake(self, request, path, protocol):
-		if request.method != "GET": return 405
-		if request.path != path: return 404
-		
-		if request.headers.get("Connection").lower() != "upgrade": return 400
-		if request.headers.get("Upgrade") != "websocket": return 400
-		
-		if "Sec-WebSocket-Key" not in request.headers: return 400
-		
-		if protocol is not None:
-			if "Sec-WebSocket-Protocol" not in request.headers:
-				return 400
-			
-			protocols = request.headers["Sec-WebSocket-Protocol"].split(", ")
-			if protocol not in protocols:
-				return 400
-		return 101
-		
 	async def process(self):
 		while True:
 			await self.process_buffer()
@@ -243,15 +221,13 @@ class WebSocketClient:
 	async def __aexit__(self, typ, exc, tb):
 		await self.stop()
 		
-	async def start_handshake(self, host, path, protocols):
-		await self.client.start_handshake(host, path, protocols)
+	async def start_client(self, host, path, protocols):
+		await self.client.start_client(host, path, protocols)
 		await self.group.spawn(self.process)
 		
-	async def accept_handshake(self, path, protocol):
-		if await self.client.accept_handshake(path, protocol):
-			await self.group.spawn(self.process)
-			return True
-		return False
+	async def start_server(self):
+		await self.client.start_server()
+		await self.group.spawn(self.process)
 		
 	async def process(self):
 		while True:
@@ -323,27 +299,38 @@ async def connect(url, context=None, *, protocols=None):
 	server = util.make_url(None, host, port, None)
 	async with http.connect(server, context) as client:
 		async with util.create_task_group() as group:
-			client = WebSocketClient(client, group)
-			async with client:
-				await client.start_handshake(host, path, protocols)
+			async with WebSocketClient(client, group) as client:
+				await client.start_client(host, path, protocols)
 				yield client
 				await client.close()
 	
 	logger.debug("WS client is closed")
 
 @contextlib.asynccontextmanager
-async def serve(handler, host="", port=0, context=None, *, path="/", protocol=None):
-	async def handle(client):
+async def route(handler, router, path, *, protocol=None):
+	async def process(client):
+		async with util.create_task_group() as group:
+			async with WebSocketClient(client, group) as client:
+				await client.start_server()
+				await handler(client)
+				await client.close()
+	
+	async def handle(client, request):
 		host, port = client.remote_address()
 		logger.debug("New WS connection: %s:%i", host, port)
 		
-		async with util.create_task_group() as group:
-			async with WebSocketClient(client, group) as client:
-				if await client.accept_handshake(path, protocol):
-					await handler(client)
-					await client.close()
+		response = accept_handshake(request, protocol)
+		if response.status_code == 101:
+			response.upgrade = lambda: process(client)
+		return response
 	
-	logger.info("Starting WS server at %s:%i", host, port)
-	async with tls.serve(handle, host, port, context):
+	logger.info("Routing WS server at %s" %path)
+	with router.route(path, handle):
 		yield
 	logger.info("WS server is closed")
+
+@contextlib.asynccontextmanager
+async def serve(handler, host="", port=0, context=None, *, path="/", protocol=None):
+	async with http.serve_router(host, port, context) as router:
+		async with route(handler, router, path, protocol=protocol):
+			yield

@@ -605,7 +605,40 @@ class HTTPServerClient:
 			response = HTTPResponse(500)
 		
 		return response
+		
+		
+class HTTPRoute:
+	def __init__(self, router, path):
+		self.router = router
+		self.path = path
+	
+	def __enter__(self): return self
+	def __exit__(self, typ, val, tb):
+		self.router.remove(self.path)
+		
+		
+class HTTPRouter:
+	def __init__(self):
+		self.routes = {}
 
+	def route(self, path, handler):
+		if path in self.routes:
+			raise ValueError("Path is already routed")
+		
+		self.routes[path] = handler
+		return HTTPRoute(self, path)
+	
+	def remove(self, path):
+		del self.routes[path]
+	
+	async def handle(self, client, request):
+		if request.path not in self.routes:
+			logger.warning("HTTP router received unmapped request: %s" %request.path)
+			return HTTPResponse(404)
+		
+		handler = self.routes[request.path]
+		return await handler(client, request)
+		
 
 @contextlib.asynccontextmanager
 async def connect(url, context=None):
@@ -677,3 +710,9 @@ async def serve(handler, host="", port=0, context=None):
 	async with tls.serve(handle, host, port, context):
 		yield
 	logger.info("HTTP server is closed")
+
+@contextlib.asynccontextmanager
+async def serve_router(host="", port=0, context=None):
+	router = HTTPRouter()
+	async with serve(router.handle, host, port, context):
+		yield router

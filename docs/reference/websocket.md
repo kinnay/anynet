@@ -15,6 +15,9 @@ Provides a client and server for the websocket protocol.
 <code>**async with serve**(handler: Callable, host: str = "", port: int = 0, context: [TLSContext](../tls#tlscontext) = None, *, path: str = "/", protocol: str = None) -> None</code><br>
 <span class="docs">Creates a websocket server and binds it to the given address. If `host` is empty, the local address of the default interface is used. If `port` is 0, it is chosen by the operating system. `handler` must be an `async` function that accepts a [`WebSocketClient`](#websocketclient). The client is closed automatically when `handler` returns. If `context` is provided, the server is secured with TLS.</span>
 
+<code>**async with route**(handler: Callable, router: [HTTPRouter](../http#httprouter), path: str, *, protocol: str = None) -> None</code><br>
+<span class="docs">Creates a websocket server and binds it to the given path. `handler` must be an `async` function that accepts a [`WebSocketClient`](#websocketclient). The client is closed automatically when `handler` returns.</span>
+
 ## WebSocketClient
 <code>**async def send**(data: bytes) -> None</code><br>
 <span class="docs">Sends a binary packet to the server. Blocks if the send buffer is full.</span>

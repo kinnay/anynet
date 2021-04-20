@@ -18,6 +18,9 @@ Provides HTTP-related classes, including a client and a server. Note that this i
 <code>**class** [HTTPClient](#httpclient)</code><br>
 <span class="docs">A reusable HTTP client.</span>
 
+<code>**class** [HTTPRouter](#httprouter)</code><br>
+<span class="docs">Routes incoming HTTP requests based on the request path.</span>
+
 <code>**async def get**(url: str, \*\*kwargs) -> [HTTPResponse](#httpresponse)</code><br>
 <code>**async def post**(url: str, \*\*kwargs) -> [HTTPResponse](#httpresponse)</code><br>
 <code>**async def put**(url: str, \*\*kwargs) -> [HTTPResponse](#httpresponse)</code><br>
@@ -34,6 +37,9 @@ Provides HTTP-related classes, including a client and a server. Note that this i
 <code>**async with serve**(handler: Callable, host: str = "", port: int = 0, context: [TLSContext](../tls#tlscontext) = None) -> None</code><br>
 <span class="docs">Creates an HTTP server at the given address. If `host` is empty, the local address of the default interface is used. If `port` is 0, it is chosen by the operating system. If `context` is provided, the server is secured with TLS.<br><br>
 `handler` must be an `async` function that takes a [`TLSClient`](../tls#tlsclient) and an [`HTTPRequest`](#httprequest) and returns an [`HTTPResponse`](#httpresponse). It's possible to call blocking functions in `handler`, because the HTTP server spawns a new task for each request. If `handler` raises an exception the server sends an empty HTTP response with status code `500` to the client. If `handler` returns `None`, no response is sent back to the client.</span>
+
+<code>**async with serve_router**(host: str = "", port: int = 0, context: [TLSContext](../tls#tlscontext) = None) -> [HTTPRouter](#httprouter)</code><br>
+<span class="docs">Creates an HTTP server at the given address. If `host` is empty, the local address of the default interface is used. If `port` is 0, it is chosen by the operating system. If `context` is provided, the server is secured with TLS.<br><br>A [HTTPRouter](#httprouter) is returned that may be used to attach handlers to request paths.</span>
 
 <code>**def urlencode**(data: str) -> str</code><br>
 <span class="docs">Applies url-encoding on the given string (i.e. replaces special characters by `%XX`).</span>
@@ -161,3 +167,7 @@ This class inherits [`HTTPMessage`](#httpmessage).
 
 <code>**def remote_certificate**() -> [TLSCertificate](../tls#tlscertificate)</code><br>
 <span class="docs">Returns the certificate that was provided by the other side of the connection. Returns `None` if the connection is not secured with TLS, or if the other side of the connection did not provide a client certificate.
+
+## HTTPRouter
+<code>**def route**(path: str, handler: Callable)</code><br>
+<span class="docs">Attaches `handler` to the given `path`. Incoming requests are routed to `handler` only if the paths are exactly the same. Raises `ValueError` if the given `path` is already in use.<br><br>This method may be called in a `with` statement to remove the path automatically.</span>
