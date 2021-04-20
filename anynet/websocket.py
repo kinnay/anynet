@@ -114,6 +114,8 @@ class WSPacketClient:
 		await self.group.spawn(self.process)
 		
 	async def start_server(self):
+		self.server_mode = True
+		
 		await self.group.spawn(self.process)
 	
 	async def process(self):
