@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 STATUS_NAMES = {
 	100: "Continue",
+	101: "Switching Protocols",
 	200: "OK",
 	201: "Created",
 	400: "Bad Request",
