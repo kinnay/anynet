@@ -367,7 +367,8 @@ class HTTPResponse(HTTPMessage):
 		super().__init__()
 		self.status_code = status_code
 		self.status_name = STATUS_NAMES.get(status_code, "Unknown")
-		
+		self.upgrade = None
+	
 	def success(self):
 		return self.status_code // 100 == 2
 		
@@ -582,9 +583,12 @@ class HTTPServerClient:
 				parser.update(data)
 			
 			response = await self.handle_request(parser.message)
-			if response is not None:
-				logger.info("Sending HTTP response (%i)", response.status_code)
-				await self.client.send(response.encode())
+			
+			logger.info("Sending HTTP response (%i)", response.status_code)
+			await self.client.send(response.encode())
+			
+			if response.upgrade:
+				await response.upgrade()
 		except Exception:
 			logger.exception("Failed to process HTTP request")
 	

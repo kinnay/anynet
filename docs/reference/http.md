@@ -26,7 +26,7 @@ Provides HTTP-related classes, including a client and a server. Note that this i
 <span class="docs">Performs a `GET`, `POST`, `PUT`, `PATCH` or `DELETE` request. These methods are provided for convenience.<br><br>`url` must contain at least the hostname or IP address of the server, and the path of the HTTP request. Scheme and port are optional. Example: `https://example.com:8080/test.html`.<br><br>The following keyword arguments may be provided to initialize the HTTP request: `headers`, `body`, `text`, `files`, `boundary`, `form`, `plainform`, `json`, `xml`, `params`, and `continue_threshold`. If no `Host` header is given it is filled in automatically based on the given `url`.<br><br>Other keyword arguments are passed on to `request()`.</span>
 
 <code>**async def request**(url: str, req: [HTTPRequest](#httprequest), context: [TLSContext](../tls#tlscontext) = None, \*\*kwargs) -> [HTTPResponse](#httpresponse)</code><br>
-<span class="docs">Performs an HTTP request on a new connection.<br><br>`url` must contain at least the hostname or IP address of the server. Scheme and port are optional. Example: `https://example:8080`.<br><br>If no scheme is provided, the connection is secured with TLS precisely if a TLS context is provided. If the scheme is `https` but no TLS context is provided the connection is secured with the default TLS context.<br><br>The keyword arguments are forwarded to [`HTTPClient.request`](#httpclient).</span>
+<span class="docs">Performs an HTTP request on a new connection.<br><br>`url` must contain at least the hostname or IP address of the server. Scheme and port are optional. Example: `https://example.com:8080`.<br><br>If no scheme is provided, the connection is secured with TLS precisely if a TLS context is provided. If the scheme is `https` but no TLS context is provided the connection is secured with the default TLS context.<br><br>The keyword arguments are forwarded to [`HTTPClient.request`](#httpclient).</span>
 
 <code>**async with connect**(url: str, context: [TLSContext](../tls#tlscontext) = None) -> [HTTPClient](#httpclient)</code><br>
 <span class="docs">Creates a reusable connection with the server. Blocks until the connection is ready. The parameters `url` and `context` have the same meaning as in `request()`.<br><br>[`HTTPClient`](#httpclient) is not task-safe. Do not try to perform multiple request on a single client concurrently.</span>
@@ -133,6 +133,9 @@ This class inherits [`HTTPMessage`](#httpmessage).
 
 <code>**status_name**: str = "Internal Server Error"</code><br>
 <span class="docs">The reason string of the HTTP response.</span>
+
+<code>**upgrade**: Callable = None</code><br>
+<span class="docs">If set, this async function is called after the HTTP response is sent to the client. Only relevant on the server side.</span>
 
 <code>**def _\_init__**(status_code: int)</code><br>
 <span class="docs">Creates a new HTTP response with the given status code. `status_name` is derived from the given status code. If the given status code is not recognized, `status_name` is set to `"Unknown"`</span>
