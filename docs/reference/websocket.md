@@ -36,3 +36,6 @@ Provides a client and server for the websocket protocol.
 
 <code>**def remote_address**() -> tuple[str, int]</code><br>
 <span class="docs">Returns the address that the client is connected to.</span>
+
+<code>**def remote_ceritifcate**() -> [TLSCertificate](#tlscertificate)</code><br>
+<span class="docs">Returns the certificate that was provided by the other side of the connection. Returns `None` if the connection is not secured with TLS, or if the other side of the connection did not provide a client certificate.</span>
