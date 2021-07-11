@@ -3,7 +3,7 @@
 
 Provides an implementation of the RC4 stream cipher.
 
-<code>**class** [RC4](#Rc4)</code><br>
+<code>**class** [RC4](#rc4)</code><br>
 <span class="docs">An RC4 stream.</span>
 
 ## RC4

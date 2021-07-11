@@ -9,13 +9,13 @@ Provides a client and server for the websocket protocol.
 <code>**class** [WebSocketClient](#websocketclient)</code><br>
 <span class="docs">A websocket client.</span>
 
-<code>**async with connect**(url: str, context: [TLSContext](../tls#tlscontext) = None, *, protocols: list[str] = None) -> [WebSocketClient](#websocketclient)</code><br>
+<code>**async with connect**(url: str, context: [TLSContext](tls.md#tlscontext) = None, *, protocols: list[str] = None) -> [WebSocketClient](#websocketclient)</code><br>
 <span class="docs">Creates a websocket client and connects it to the given address. Blocks until the connection is ready and the handshake has been performed.<br><br>`url` must contain at least the hostname or IP address of the server, and the path. Scheme and port are optional. Example: `wss://example.com:8080/test`.<br><br>If no scheme is provided, the connection is secured with TLS precisely if a TLS context is provided. If the scheme is `wss` but no TLS context is provided the connection is secured with the default TLS context.</span>
 
-<code>**async with serve**(handler: Callable, host: str = "", port: int = 0, context: [TLSContext](../tls#tlscontext) = None, *, path: str = "/", protocol: str = None) -> None</code><br>
+<code>**async with serve**(handler: Callable, host: str = "", port: int = 0, context: [TLSContext](tls.md#tlscontext) = None, *, path: str = "/", protocol: str = None) -> None</code><br>
 <span class="docs">Creates a websocket server and binds it to the given address. If `host` is empty, the local address of the default interface is used. If `port` is 0, it is chosen by the operating system. `handler` must be an `async` function that accepts a [`WebSocketClient`](#websocketclient). The client is closed automatically when `handler` returns. If `context` is provided, the server is secured with TLS.</span>
 
-<code>**async with route**(handler: Callable, router: [HTTPRouter](../http#httprouter), path: str, *, protocol: str = None) -> None</code><br>
+<code>**async with route**(handler: Callable, router: [HTTPRouter](http.md#httprouter), path: str, *, protocol: str = None) -> None</code><br>
 <span class="docs">Creates a websocket server and binds it to the given path. `handler` must be an `async` function that accepts a [`WebSocketClient`](#websocketclient). The client is closed automatically when `handler` returns.</span>
 
 ## WebSocketClient
