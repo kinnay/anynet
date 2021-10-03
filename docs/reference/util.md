@@ -6,7 +6,8 @@ Provides useful functions that didn't fit into another module.
 <code>**StreamError**: tuple = (
     anyio.EndOfStream,
     anyio.ClosedResourceError,
-    anyio.BrokenResourceError
+    anyio.BrokenResourceError,
+	BrokenPipeError
 )</code>
 
 <code>**def is_decimal**(s: str) -> bool</code><br>

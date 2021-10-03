@@ -7,10 +7,10 @@ Provides a class that schedules events after a certain amount of time.
 <span class="docs">Creates a scheduler. All events are canceled when the context manager exits.</span>
 
 ## Scheduler
-<code>**async def schedule**(function: Callable, delay: float, \*args) -> int</code><br>
+<code>**def schedule**(function: Callable, delay: float, \*args) -> int</code><br>
 <span class="docs">Schedules an asynchronous function call after `delay` seconds. Returns a handle that can be passed to `remove()`.</span>
 
-<code>**async def repeat**(function: Callable, delay: float, \*args) -> int</code><br>
+<code>**def repeat**(function: Callable, delay: float, \*args) -> int</code><br>
 <span class="docs">Schedules an asynchronous function call after `delay` seconds. The call is repeated every `delay` seconds. Returns a handle that can be passed to `remove()`.</span>
 
 <code>**def remove**(handle: int) -> None</code><br>

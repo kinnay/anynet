@@ -111,12 +111,12 @@ class WSPacketClient:
 			raise WSError("Sec-WebSocket-Accept check failed")
 		
 		logger.debug("WS handshake succeeded")
-		await self.group.spawn(self.process)
+		self.group.start_soon(self.process)
 		
 	async def start_server(self):
 		self.server_mode = True
 		
-		await self.group.spawn(self.process)
+		self.group.start_soon(self.process)
 	
 	async def process(self):
 		while True:
@@ -225,11 +225,11 @@ class WebSocketClient:
 		
 	async def start_client(self, host, path, protocols):
 		await self.client.start_client(host, path, protocols)
-		await self.group.spawn(self.process)
+		self.group.start_soon(self.process)
 		
 	async def start_server(self):
 		await self.client.start_server()
-		await self.group.spawn(self.process)
+		self.group.start_soon(self.process)
 		
 	async def process(self):
 		while True:
@@ -248,6 +248,7 @@ class WebSocketClient:
 		elif opcode == OPCODE_PING:
 			await self.client.send(OPCODE_PONG, payload)
 		elif opcode == OPCODE_DISCONNECT:
+			logger.debug("Received disconnect packet")
 			await self.client.send(OPCODE_DISCONNECT)
 			await self.stop()
 		else:
@@ -260,10 +261,8 @@ class WebSocketClient:
 	async def close(self):
 		logger.debug("Closing WS connection")
 		await self.stop()
-		try:
+		with util.catch(util.StreamError, silent=True):
 			await self.client.send(OPCODE_DISCONNECT)
-		except BrokenPipeError:
-			pass
 		logger.debug("WS connection is closed")
 			
 	async def send(self, data):

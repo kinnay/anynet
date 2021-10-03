@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 StreamError = (
 	anyio.EndOfStream, anyio.ClosedResourceError,
-	anyio.BrokenResourceError
+	anyio.BrokenResourceError, BrokenPipeError
 )
 
 
@@ -78,21 +78,23 @@ def make_url(scheme, host, port, path):
 async def create_task_group():
 	async with anyio.create_task_group() as group:
 		yield group
-		await group.cancel_scope.cancel()
+		group.cancel_scope.cancel()
 
 @contextlib.contextmanager
-def catch(cls):
+def catch(cls, *, silent=False):
 	try:
 		yield
 	except anyio.ExceptionGroup as e:
 		filtered = []
 		for exc in e.exceptions:
 			if isinstance(exc, cls):
-				logger.exception("An exception occurred")
+				if not silent:
+					logger.exception("An exception occurred")
 			else:
 				filtered.append(exc)
 		e.exceptions = filtered
 		if filtered:
 			raise
 	except cls as e:
-		logger.exception("An exception occurred")
+		if not silent:
+			logger.exception("An exception occurred")

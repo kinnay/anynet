@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class UDPSocket:
 	def __init__(self, sock):
 		self.sock = sock
-		self.lock = anyio.create_lock()
+		self.lock = anyio.Lock()
 	
 	async def send(self, data, addr):
 		async with self.lock:
@@ -30,7 +30,7 @@ class UDPSocket:
 class UDPClient:
 	def __init__(self, sock):
 		self.sock = sock
-		self.lock = anyio.create_lock()
+		self.lock = anyio.Lock()
 	
 	async def send(self, data):
 		async with self.lock:
