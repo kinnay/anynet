@@ -1,5 +1,6 @@
 
-from anynet import tls, util, types, xml, scheduler
+from anynet import tls, util, xml, scheduler
+from multidict import MultiDict, CIMultiDict
 import urllib.parse
 import contextlib
 import datetime
@@ -13,27 +14,67 @@ logger = logging.getLogger(__name__)
 STATUS_NAMES = {
 	100: "Continue",
 	101: "Switching Protocols",
+	102: "Processing",
+	103: "Early Hints",
 	200: "OK",
 	201: "Created",
+	202: "Accepted",
+	203: "Non-Authoritative Information",
+	204: "No Content",
+	205: "Reset Content",
+	206: "Partial Content",
+	207: "Multi-Status",
+	208: "Already Reported",
+	226: "IM Used",
+	300: "Multiple Choices",
+	301: "Moved Permanently",
+	302: "Found",
+	303: "See Other",
+	304: "Not Modified",
+	305: "Use Proxy",
+	307: "Temporary Redirect",
+	308: "Permanent Redirect",
 	400: "Bad Request",
 	401: "Unauthorized",
+	402: "Payment Required",
 	403: "Forbidden",
 	404: "Not Found",
 	405: "Method Not Allowed",
 	406: "Not Acceptable",
+	407: "Proxy Authentication Required",
+	408: "Request Timeout",
 	409: "Conflict",
+	410: "Gone",
+	411: "Length Required",
 	412: "Precondition Failed",
-	422: "Unprocessable Entity",
+	413: "Payload Too Large",
+	414: "URI Too Long",
+	415: "Unsupported Media Type",
+	416: "Range Not Satisfiable",
+	417: "Expectation Failed",
+	421: "Misdirected Request",
+	422: "Unprocessable Content",
+	423: "Locked",
+	424: "Failed Dependency",
+	425: "Too Early",
+	426: "Upgrade Required",
+	428: "Precondition Required",
+	429: "Too Many Requests",
+	431: "Request Header Fields Too Large",
+	451: "Unavailable For Legal Reasons",
 	500: "Internal Server Error",
+	501: "Not Implemented",
 	502: "Bad Gateway",
-	503: "Service Unavailable"
+	503: "Service Unavailable",
+	504: "Gateway Timeout",
+	505: "HTTP Version Not Supported",
+	506: "Variant Also Negotiates",
+	507: "Insufficient Storage",
+	508: "Loop Detected",
+	510: "Not Extended",
+	511: "Network Authentication Required"
 }
 
-
-JSON_TYPES = [
-	"application/json",
-	"application/problem+json"
-]
 
 XML_TYPES = [
 	"application/xml",
@@ -41,49 +82,71 @@ XML_TYPES = [
 ]
 
 TEXT_TYPES = [
+	"application/json",
 	"application/x-www-form-urlencoded",
-	"text/plain",
-	"text/html",
-	*JSON_TYPES,
-	*XML_TYPES
+	"application/xml"
 ]
 
 
 class HTTPError(Exception): pass
 
+class HTTPResponseError(HTTPError):
+	def __init__(self, response):
+		self.response = response
+	
+	def __str__(self):
+		return "HTTP request failed: %i (%s)" %(self.response.status_code, self.response.status_name)
 
-def format_date():
-	now = datetime.datetime.now(datetime.timezone.utc)
-	return now.strftime("%a, %d %b %Y %H:%M:%S GMT")
-	
-	
+
+def parse_date(text):
+	dt = datetime.datetime.strptime(text, "%a, %d %b %Y %H:%M:%S GMT")
+	return dt.replace(tzinfo=datetime.timezone.utc)
+
+def format_date(date):
+	date = date.astimezone(datetime.timezone.utc)
+	return date.strftime("%a, %d %b %Y %H:%M:%S GMT")
+
+def current_date():
+	return format_date(datetime.datetime.now())
+
+
 def urlencode(data):
 	return urllib.parse.quote(data)
 def urldecode(data):
 	return urllib.parse.unquote(data)
-	
+
 def formencode(data, url=True):
 	fields = []
 	for key, value in data.items():
-		if url:
-			key = urlencode(str(key))
-			value = urlencode(str(value))
-		fields.append("%s=%s" %(key, value))
+		if value is None:
+			if url:
+				key = urlencode(str(key))
+			fields.append(key)
+		else:
+			if url:
+				key = urlencode(str(key))
+				value = urlencode(str(value))
+			fields.append("%s=%s" %(key, value))
 	return "&".join(fields)
 
 def formdecode(data, url=True):
-	if not data: return {}
-		
-	fields = {}
+	if not data: return MultiDict()
+	
+	fields = MultiDict()
 	for field in data.split("&"):
-		if not "=" in field:
-			raise HTTPError("Malformed form parameter: %s" %field)
-		key, value = field.split("=", 1)
-		if url:
-			key = urldecode(key)
-			value = urldecode(value)
-		fields[key] = value
+		if "=" in field:
+			key, value = field.split("=", 1)
+			if url:
+				key = urldecode(key)
+				value = urldecode(value)
+			fields[key] = value
+		else:
+			key = field
+			if url:
+				key = urldecode(key)
+			fields[key] = None
 	return fields
+
 
 def parseheader(header):
 	fields = header.split(";")
@@ -109,16 +172,15 @@ class HTTPMessage:
 	def __init__(self):
 		self.version = "HTTP/1.1"
 	
-		self.headers = types.CaseInsensitiveDict()
+		self.headers = CIMultiDict()
 		self.body = b""
 		
-		self.text = None
-		
-		self.files = {}
-		self.form = {}
-		self.plainform = {}
-		self.json = {}
+		self.rawform = None
+		self.form = None
+		self.json = None
 		self.xml = None
+		self.files = None
+		self.text = None
 		
 		self.boundary = "--------BOUNDARY--------"
 		
@@ -127,7 +189,7 @@ class HTTPMessage:
 			raise HTTPError("HTTP version must start with HTTP/")
 		if self.version != "HTTP/1.1":
 			raise HTTPError("HTTP version not supported")
-		
+	
 	def transfer_encodings(self):
 		encoding = self.headers.get("Transfer-Encoding", "identity")
 		return [enc.strip() for enc in encoding.split(",")]
@@ -135,10 +197,14 @@ class HTTPMessage:
 	def is_chunked(self):
 		return "chunked" in self.transfer_encodings()
 		
-	def finish_parsing(self):
+	def parse_body(self):
 		type, param = parseheader(self.headers.get("Content-Type", ""))
 		
-		if type in TEXT_TYPES:
+		is_json = type == "application/json" or type.endswith("+json")
+		is_xml = type in XML_TYPES or type.endswith("+xml")
+		is_text = type in TEXT_TYPES or type.startswith("text/") or is_json or is_xml
+		
+		if is_text:
 			try:
 				self.text = self.body.decode(param.get("charset", "UTF-8"))
 			except UnicodeDecodeError:
@@ -146,26 +212,26 @@ class HTTPMessage:
 		
 		if type == "application/x-www-form-urlencoded":
 			self.form = formdecode(self.text)
-			self.plainform = formdecode(self.text, False)
+			self.rawform = formdecode(self.text, False)
 		
-		if type in JSON_TYPES:
+		if is_json:
 			try:
 				self.json = json.loads(self.text)
 			except json.JSONDecodeError:
 				raise HTTPError("Failed to decode JSON body")
-				
-		if type in XML_TYPES:
+		
+		if is_xml:
 			try:
 				self.xml = xml.parse(self.text)
 			except ValueError as e:
 				raise HTTPError("Failed to decode XML body: %s" %e)
-
+		
 		if type.startswith("multipart/form-data"):
 			if "boundary" not in param:
 				raise HTTPError("multipart/form-data required boundary parameter")
 			self.boundary = param["boundary"]
 			self.files = self.parse_files(self.body)
-			
+	
 	def parse_files(self, data):
 		split = b"--%s" %self.boundary.encode()
 		parts = data.split(split)
@@ -173,7 +239,7 @@ class HTTPMessage:
 		if parts[-1] != b"--\r\n" or parts[0] != b"":
 			raise HTTPError("Failed to decode multipart body")
 		
-		files = {}
+		files = MultiDict()
 		for part in parts[1:-1]:
 			if part[:2] != b"\r\n" or part[-2:] != b"\r\n":
 				raise HTTPError("Failed to decode multipart body")
@@ -212,17 +278,17 @@ class HTTPMessage:
 		text = self.text
 		body = self.body
 		
-		if self.plainform:
+		if self.rawform is not None:
 			if "Content-Type" not in self.headers:
 				self.headers["Content-Type"] = "application/x-www-form-urlencoded"
-			text = formencode(self.plainform, False)
-			
-		elif self.form:
+			text = formencode(self.rawform, False)
+		
+		elif self.form is not None:
 			if "Content-Type" not in self.headers:
 				self.headers["Content-Type"] = "application/x-www-form-urlencoded"
 			text = formencode(self.form)
 		
-		elif self.json:
+		elif self.json is not None:
 			if "Content-Type" not in self.headers:
 				self.headers["Content-Type"] = "application/json"
 			text = json.dumps(self.json)
@@ -232,7 +298,7 @@ class HTTPMessage:
 				self.headers["Content-Type"] = "application/xml"
 			text = self.xml.encode()
 			
-		elif self.files:
+		elif self.files is not None:
 			if "Content-Type" not in self.headers:
 				self.headers["Content-Type"] = "multipart/form-data"
 			self.headers["Content-Type"] += "; boundary=%s" %self.boundary
@@ -240,11 +306,12 @@ class HTTPMessage:
 			text = None
 			body = b""
 			for name, data in self.files.items():
+				name = name.replace('"', '\\"')
 				body += b"--%s\r\n" %self.boundary.encode()
 				body += b"Content-Disposition: form-data; name=\"%s\"\r\n\r\n" %name.encode()
 				body += data + b"\r\n"
 			body += b"--%s--\r\n" %self.boundary.encode()
-			
+		
 		if text is not None:
 			if "Content-Type" not in self.headers:
 				self.headers["Content-Type"] = "text/plain"
@@ -277,14 +344,13 @@ class HTTPMessage:
 	
 	def encode(self):
 		return self.encode_headers() + self.encode_body()
-		
+	
 	@classmethod
-	def parse(cls, data):
-		parser = HTTPParser(cls)
+	def parse(cls, data, head=False):
+		parser = HTTPParser(cls, head)
 		parser.update(data)
+		parser.eof()
 		
-		if not parser.complete():
-			raise HTTPError("HTTP message is incomplete")
 		if parser.buffer:
 			raise HTTPError("Got more data than expected")
 		
@@ -297,24 +363,20 @@ class HTTPRequest(HTTPMessage):
 		self.method = "GET"
 		self.path = "/"
 		
-		self.params = {}
+		self.params = None
 		self.continue_threshold = 1024
-		
-		self.certificate = None
-		
-	def finish_parsing(self):
-		super().finish_parsing()
-		
+	
+	def check_path(self):
 		if "?" in self.path:
 			self.path, params = self.path.split("?", 1)
 			self.params = formdecode(params)
 		
 	def encode_start_line(self):
 		path = self.path
-		if self.params:
+		if self.params is not None:
 			path += "?" + formencode(self.params)
 		return "%s %s %s" %(self.method, path, self.version)
-		
+	
 	def parse_start_line(self, line):
 		fields = line.split(maxsplit=2)
 		if len(fields) != 3:
@@ -325,6 +387,7 @@ class HTTPRequest(HTTPMessage):
 		self.version = fields[2]
 		
 		self.check_version()
+		self.check_path()
 		
 	def encode_body(self):
 		body = super().encode_body()
@@ -335,7 +398,7 @@ class HTTPRequest(HTTPMessage):
 	
 	@classmethod
 	def build(cls, method, path):
-		params = {}
+		params = None
 		if "?" in path:
 			path, data = path.split("?", 1)
 			params = formdecode(data)
@@ -378,7 +441,7 @@ class HTTPResponse(HTTPMessage):
 	
 	def raise_if_error(self):
 		if self.error():
-			raise HTTPError("HTTP request failed: %i (%s)" %(self.status_code, self.status_name))
+			raise HTTPResponseError(self)
 		
 	def encode_start_line(self):
 		return "%s %i %s" %(self.version, self.status_code, self.status_name)
@@ -402,8 +465,9 @@ class HTTPResponse(HTTPMessage):
 		
 
 class HTTPParser:
-	def __init__(self, cls):
+	def __init__(self, cls, head):
 		self.message = cls()
+		self.head = head
 		
 		self.buffer = b""
 		self.state = self.state_header
@@ -415,11 +479,22 @@ class HTTPParser:
 		self.buffer += data
 		while not self.state():
 			pass
-			
+
+	def eof(self):
+		if self.state != self.state_body:
+			raise HTTPError("Got unexpected EOF while parsing HTTP message")
+		self.finish()
+	
 	def finish(self):
-		self.message.finish_parsing()
+		self.message.parse_body()
 		self.state = None
-		return self.message
+	
+	def is_head(self):
+		if self.head: return True
+		if isinstance(self.message, HTTPResponse):	
+			if self.message.status_code // 100 == 1: return True
+			if self.message.status_code in [204, 304]: return True
+		return False
 	
 	def state_header(self):
 		if not b"\r\n\r\n" in self.buffer:
@@ -443,18 +518,25 @@ class HTTPParser:
 			key, value = header.split(": ", 1)
 			self.message.headers[key] = value
 		
+		if self.is_head():
+			self.state = None
+			return True
+		
 		if self.message.is_chunked():
 			self.state = self.state_chunk_header
 			return False
 		elif "Content-Length" in self.message.headers:
 			if not self.message.headers["Content-Length"].isdecimal():
 				raise HTTPError("Invalid Content-Length header")
+			self.state = self.state_fixed_body
+			return False
+		elif isinstance(self.message, HTTPResponse):
 			self.state = self.state_body
 			return False
 		
 		self.finish()
 		return True
-		
+	
 	def state_chunk_header(self):
 		if not b"\r\n" in self.buffer:
 			return True
@@ -491,7 +573,7 @@ class HTTPParser:
 		self.state = self.state_chunk_header
 		return False
 		
-	def state_body(self):
+	def state_fixed_body(self):
 		length = int(self.message.headers["Content-Length"])
 		if len(self.buffer) < length:
 			return True
@@ -499,6 +581,11 @@ class HTTPParser:
 		self.message.body = self.buffer[:length]
 		self.buffer = self.buffer[length:]
 		self.finish()
+		return True
+	
+	def state_body(self):
+		self.message.body += self.buffer
+		self.buffer = b""
 		return True
 
 
@@ -523,7 +610,7 @@ class HTTPClient:
 		
 		if req.headers.get("Expect") == "100-continue":
 			logger.debug("Waiting for 100-continue")
-			response = await self.receive_response()
+			response = await self.receive_response(True)
 			if response.status_code != 100:
 				raise HTTPError("Expected 100-continue response")
 		
@@ -531,14 +618,16 @@ class HTTPClient:
 		if body:
 			logger.debug("Sending HTTP request body")
 			await self.send(req.encode_body())
-		response = await self.receive_response(headerfunc, writefunc)
+		
+		response = await self.receive_response(req.method == "HEAD", headerfunc, writefunc)
 		return response
 			
-	async def receive_response(self, headerfunc=None, writefunc=None):
-		parser = HTTPParser(HTTPResponse)
+	async def receive_response(self, head, headerfunc=None, writefunc=None):
+		parser = HTTPParser(HTTPResponse, head)
 		
 		while not parser.header_complete():
 			parser.update(await self.recv())
+		
 		if headerfunc:
 			await headerfunc(parser.message)
 		
@@ -548,7 +637,11 @@ class HTTPClient:
 			offset = len(parser.message.body)
 		
 		while not parser.complete():
-			parser.update(await self.recv())
+			try:
+				parser.update(await self.recv())
+			except util.StreamError:
+				parser.eof()
+			
 			if writefunc and len(parser.message.body) > offset:
 				await writefunc(parser.message.body[offset:])
 				offset = len(parser.message.body)
@@ -571,7 +664,7 @@ class HTTPServerClient:
 	
 	async def process(self):
 		try:
-			parser = HTTPParser(HTTPRequest)
+			parser = HTTPParser(HTTPRequest, False)
 			while not parser.header_complete():
 				data = await self.client.recv()
 				parser.update(data)
@@ -672,7 +765,7 @@ async def request(url, req, context=None, **kwargs):
 
 REQUEST_ARGS = [
 	"headers", "body", "text", "files", "boundary", "form",
-	"plainform", "json", "xml", "params", "continue_threshold"
+	"rawform", "json", "xml", "params", "continue_threshold"
 ]
 
 async def call(url, method, **kwargs):

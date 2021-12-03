@@ -1,5 +1,4 @@
 
-from anynet import types
 import string
 
 
@@ -59,7 +58,7 @@ class TextStream:
 class XMLTree:
 	def __init__(self, name):
 		self.children = []
-		self.attrs = types.OrderedDict()
+		self.attrs = {}
 		
 		self.text = None
 		self.name = name
@@ -95,7 +94,7 @@ class XMLTree:
 	def add(self, name, text=None, attrs={}):
 		node = XMLTree(name)
 		node.text = text
-		node.attrs = types.OrderedDict(attrs)
+		node.attrs = dict(attrs)
 		self.children.append(node)
 		return node
 	

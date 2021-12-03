@@ -1,7 +1,7 @@
 
 ## Welcome to anynet
 
-This is a simple asynchronous networking library that I'm using for hobby projects. It's based on anyio, so it can be used together with either asyncio, curio or trio.
+This is a simple asynchronous networking library that I'm using for hobby projects. It's based on anyio, so it can be used together with either asyncio or trio.
 
 * [Contributing](#contributing)
 * [API Reference](#api-reference)

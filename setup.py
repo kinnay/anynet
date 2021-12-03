@@ -4,11 +4,11 @@ import setuptools
 long_description = \
 	"This is a simple asynchronous networking library that " \
 	"I'm using for hobby projects. It's based on anyio, so " \
-	"it can be used together with either asyncio, curio or trio."
+	"it can be used together with either asyncio or trio."
 
 setuptools.setup(
 	name = "anynet",
-	version = "0.0.10",
+	version = "0.0.11",
 	description = "Networking library based on anyio",
 	long_description = long_description,
 	author = "Yannik Marchand",
@@ -22,6 +22,7 @@ setuptools.setup(
 		"cryptography",
 		"pyopenssl",
 		"netifaces",
-		"pycryptodome"
+		"pycryptodome",
+		"multidict"
 	]
 )

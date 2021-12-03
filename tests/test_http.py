@@ -1,10 +1,11 @@
 
-from anynet import http, tls, xml
+from anynet import http, tls, tcp, xml
 import pytest
 
 
-def test_httperror():
+def test_errors():
 	assert issubclass(http.HTTPError, Exception)
+	assert issubclass(http.HTTPResponseError, http.HTTPError)
 
 def test_urlencode():
 	assert http.urlencode("\0\xff\x7f").lower() == "%00%c3%bf%7f"
@@ -26,9 +27,6 @@ def test_formdecode():
 	assert http.formdecode(
 		"123%20456=%26%3d%3F&-_=-_&~=", False
 	) == {"123%20456": "%26%3d%3F", "-_": "-_", "~": ""}
-	
-	with pytest.raises(http.HTTPError):
-		http.formdecode("&&&")
 
 def test_formencode():
 	assert http.formencode({}) == ""
@@ -52,11 +50,11 @@ class TestHTTPMessage:
 		assert request.headers == {}
 		assert request.body == b""
 		assert request.text is None
-		assert request.files == {}
+		assert request.files is None
 		assert request.boundary == "--------BOUNDARY--------"
-		assert request.form == {}
-		assert request.plainform == {}
-		assert request.json == {}
+		assert request.form is None
+		assert request.rawform is None
+		assert request.json is None
 		assert request.xml is None
 
 
@@ -65,7 +63,7 @@ class TestHTTPRequest:
 		request = http.HTTPRequest()
 		assert request.method == "GET"
 		assert request.path == "/"
-		assert request.params == {}
+		assert request.params is None
 		assert request.continue_threshold == 1024
 		
 	def test_encode(self):
@@ -125,7 +123,7 @@ class TestHTTPResponse:
 	
 	def test_raise_if_error(self):
 		response = http.HTTPResponse()
-		with pytest.raises(http.HTTPError):
+		with pytest.raises(http.HTTPResponseError):
 			response.raise_if_error()
 			
 			
@@ -300,17 +298,19 @@ class TestHTTPServer:
 			assert response.form["$<result>"] == "???"
 	
 	@pytest.mark.anyio
-	async def test_plainform(self):
+	async def test_rawform(self):
 		async def handler(client, request):
 			response = http.HTTPResponse(200)
-			response.plainform["$<result>"] = request.plainform["value+!"]
+			response.rawform = {
+				"$<result>": request.rawform["value+!"]
+			}
 			return response
 			
 		async with http.serve(handler, "localhost", 12345):
-			response = await http.get("localhost:12345", plainform={
+			response = await http.get("localhost:12345", rawform={
 				"value+!": "???"
 			})
-			assert response.plainform["$<result>"] == "???"
+			assert response.rawform["$<result>"] == "???"
 	
 	@pytest.mark.anyio
 	async def test_json(self):
@@ -384,3 +384,17 @@ class TestHTTPServer:
 		async with http.serve(handler, "localhost", 12345, servercontext):
 			response = await http.get("localhost:12345", context=clientcontext)
 			assert response.success()
+
+
+class TestHTTPMisc:
+	@pytest.mark.anyio
+	async def test_response_no_length(self):
+		async def handler(client):
+			req = b""
+			while b"\r\n\r\n" not in req:
+				req += await client.recv()
+			await client.send(b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nTesting")
+		
+		async with tcp.serve(handler, "localhost", 12345):
+			response = await http.get("localhost:12345")
+			assert response.text == "Testing"
