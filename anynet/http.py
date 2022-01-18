@@ -187,7 +187,7 @@ class HTTPMessage:
 	def check_version(self):
 		if not self.version.startswith("HTTP/"):
 			raise HTTPError("HTTP version must start with HTTP/")
-		if self.version != "HTTP/1.1":
+		if self.version not in ["HTTP/1.0", "HTTP/1.1"]:
 			raise HTTPError("HTTP version not supported")
 	
 	def transfer_encodings(self):
