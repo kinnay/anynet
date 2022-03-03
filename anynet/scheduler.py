@@ -25,7 +25,6 @@ class Scheduler:
 				self.event = anyio.Event()
 	
 	def process_timers(self):
-		minimum = None
 		current = time.monotonic()
 		items = self.events.copy().items()
 		for handle, (deadline, repeat, function, args) in items:
@@ -34,10 +33,9 @@ class Scheduler:
 				if repeat is not None:
 					self.events[handle] = (deadline + repeat, repeat, function, args)
 				self.group.start_soon(function, *args)
-			else:
-				if minimum is None or minimum > deadline - current:
-					minimum = deadline - current
-		return minimum
+		
+		timeouts = [event[0] - current for event in self.events.values()]
+		return min(timeouts, default=None)
 	
 	def schedule(self, function, delay, *args):
 		deadline = time.monotonic() + delay
