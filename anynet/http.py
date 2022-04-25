@@ -649,6 +649,9 @@ class HTTPClient:
 		self.buffer += parser.buffer
 		return parser.message
 	
+	async def close(self):
+		await self.sock.close()
+	
 	def local_address(self):
 		return self.sock.local_address()
 	def remote_address(self):

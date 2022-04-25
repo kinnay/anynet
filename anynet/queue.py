@@ -19,6 +19,9 @@ class Queue:
 	
 	async def close(self):
 		await self.stream.aclose()
+	
+	async def eof(self):
+		await self.stream.send_eof()
 
 
 def create(size=math.inf):

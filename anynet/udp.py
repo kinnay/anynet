@@ -19,9 +19,8 @@ class UDPSocket:
 	async def recv(self):
 		return await self.sock.receive()
 	
-	async def broadcast(self, data, port):
-		host = util.broadcast_address()
-		await self.send(data, (host, port))
+	async def close(self):
+		await self.sock.aclose()
 	
 	def local_address(self):
 		return self.sock.extra(anyio.abc.SocketAttribute.local_address)
@@ -38,6 +37,9 @@ class UDPClient:
 	async def recv(self):
 		return await self.sock.receive()
 	
+	async def close(self):
+		await self.sock.aclose()
+	
 	def local_address(self):
 		return self.sock.extra(anyio.abc.SocketAttribute.local_address)
 	def remote_address(self):
@@ -45,7 +47,7 @@ class UDPClient:
 
 
 @contextlib.asynccontextmanager
-async def bind(host="", port=0):
+async def bind(host="", port=0, *, broadcast=False):
 	if not host:
 		host = util.local_address()
 	
@@ -53,8 +55,9 @@ async def bind(host="", port=0):
 	
 	sock = await anyio.create_udp_socket(local_host=host, local_port=port)
 	async with sock:
-		rawsock = sock.extra(anyio.abc.SocketAttribute.raw_socket)
-		rawsock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, True)
+		if broadcast:
+			rawsock = sock.extra(anyio.abc.SocketAttribute.raw_socket)
+			rawsock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, True)
 		yield UDPSocket(sock)
 
 @contextlib.asynccontextmanager

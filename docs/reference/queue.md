@@ -14,4 +14,7 @@ Provides a simple queue.
 <span class="docs">Gets an item from the queue. Blocks if the queue is empty.</span>
 
 <code>**async def close**() -> None</code><br>
-<span class="docs">Closes the queue.</span>
+<span class="docs">Closes the queue. No more items can be put into or obtained from the queue.</span>
+
+<code>**async def eof**() -> None</code><br>
+<span class="docs">Closes the queue. No more items can be put into the queue. Items that are already in queue can still be obtained with `get()`.</span>

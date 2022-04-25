@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 StreamError = (
 	anyio.EndOfStream, anyio.ClosedResourceError,
-	anyio.BrokenResourceError, BrokenPipeError
+	anyio.BrokenResourceError
 )
 
 

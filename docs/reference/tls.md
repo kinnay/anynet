@@ -25,7 +25,7 @@ Provides classes to work with TCP/TLS connections.
 <span class="docs">Creates a TCP/TLS client and connects it to the given address. Blocks until the connection is ready and the TLS handshake has been performed. If no context is provided, the client uses plain TCP without TLS.</span>
 
 <code>**async with serve**(handler: Callable, host: str = "", port: int = 0, context: [TLSContext](#tlscontext) = None) -> None</code><br>
-<span class="docs">Creates a TCP/TLS server and binds it to the given address. If `host` is empty, the local address of the default interface is used. If `port` is 0, it is chosen by the operating system. `handler` must be an `async` function that accepts a [`TLSClient`](#tlsclient). The client is closed automatically when `handler` returns. If no context is provided, the server uses plain TCP without TLS.</span>
+<span class="docs">Creates a TCP/TLS server and binds it to the given address. If `host` is empty, the local address of the default gateway is used. If `port` is 0, it is chosen by the operating system. `handler` must be an `async` function that accepts a [`TLSClient`](#tlsclient). The client is closed automatically when `handler` returns. If no context is provided, the server uses plain TCP without TLS.</span>
 
 ## Global Constants
 `TYPE_DER (0)`<br>
@@ -126,6 +126,9 @@ This class should not be instantiated directly. Instead, one of the static metho
 
 <code>**async def recv**(num: int = 65536) -> bytes</code><br>
 <span class="docs">Receives at most `num` bytes. Blocks if no data is available.</span>
+
+<code>**async def close**() -> None</code><br>
+<span class="docs">Closes the connection.</span>
 
 <code>**def local_address**() -> tuple[str, int]</code><br>
 <span class="docs">Returns the local address of the client.</span>

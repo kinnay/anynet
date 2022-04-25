@@ -38,11 +38,11 @@ Provides HTTP-related classes, including a client and a server. Note that this i
 <span class="docs">Creates a reusable connection with the server. Blocks until the connection is ready. The parameters `url` and `context` have the same meaning as in `request()`.<br><br>[`HTTPClient`](#httpclient) is not task-safe. Do not try to perform multiple request on a single client concurrently.</span>
 
 <code>**async with serve**(handler: Callable, host: str = "", port: int = 0, context: [TLSContext](tls.md#tlscontext) = None) -> None</code><br>
-<span class="docs">Creates an HTTP server at the given address. If `host` is empty, the local address of the default interface is used. If `port` is 0, it is chosen by the operating system. If `context` is provided, the server is secured with TLS.<br><br>
+<span class="docs">Creates an HTTP server at the given address. If `host` is empty, the local address of the default gateway is used. If `port` is 0, it is chosen by the operating system. If `context` is provided, the server is secured with TLS.<br><br>
 `handler` must be an `async` function that takes a [`TLSClient`](tls.md#tlsclient) and an [`HTTPRequest`](#httprequest) and returns an [`HTTPResponse`](#httpresponse). It's possible to call blocking functions in `handler`, because the HTTP server spawns a new task for each request. If `handler` raises an exception the server sends an empty HTTP response with status code `500` to the client. If `handler` returns `None`, no response is sent back to the client.</span>
 
 <code>**async with serve_router**(host: str = "", port: int = 0, context: [TLSContext](tls.md#tlscontext) = None) -> [HTTPRouter](#httprouter)</code><br>
-<span class="docs">Creates an HTTP server at the given address. If `host` is empty, the local address of the default interface is used. If `port` is 0, it is chosen by the operating system. If `context` is provided, the server is secured with TLS.<br><br>A [HTTPRouter](#httprouter) is returned that may be used to attach handlers to request paths.</span>
+<span class="docs">Creates an HTTP server at the given address. If `host` is empty, the local address of the default gateway is used. If `port` is 0, it is chosen by the operating system. If `context` is provided, the server is secured with TLS.<br><br>A [HTTPRouter](#httprouter) is returned that may be used to attach handlers to request paths.</span>
 
 <code>**def current_date**() -> str</code><br>
 <span class="docs">Returns the current date and time in the format of the Date header.</span>
@@ -171,6 +171,9 @@ This class inherits [`HTTPMessage`](#httpmessage).
 <code>**async def request**(req: [HTTPRequest](#httprequest), \*, headerfunc: Callable = None, writefunc: Callable = None) -> [HTTPResponse](#httpresponse)</code><br>
 <span class="docs">Performs an HTTP request.<br><br>If `headerfunc` is provided, it must be an async function that takes a [`HTTPResponse`](#httpresponse) object. It is called once after all HTTP headers are received.<br><br>If `writefunc` is provided, it must be an async function that takes a `bytes` object. It is called whenever a part of the body is received from the server.</span>
 
+<code>**async def close**() -> None</code><br>
+<span class="docs">Closes the connection.</span>
+
 <code>**def local_address**() -> tuple[str, int]</code><br>
 <span class="docs">Returns the local address of the client.</span>
 
@@ -178,11 +181,11 @@ This class inherits [`HTTPMessage`](#httpmessage).
 <span class="docs">Returns the remote address of the client.</span>
 
 <code>**def remote_certificate**() -> [TLSCertificate](tls.md#tlscertificate)</code><br>
-<span class="docs">Returns the certificate that was provided by the other side of the connection. Returns `None` if the connection is not secured with TLS, or if the other side of the connection did not provide a client certificate.
+<span class="docs">Returns the certificate that was provided by the other side of the connection. Returns `None` if the connection is not secured with TLS.</span>
 
 ## HTTPRouter
 <code>**def route**(path: str, handler: Callable)</code><br>
-<span class="docs">Attaches `handler` to the given `path`. Incoming requests are routed to `handler` only if the paths are exactly the same. Raises `ValueError` if the given `path` is already in use.<br><br>This method may be called in a `with` statement to remove the path automatically.</span>
+<span class="docs">Attaches `handler` to the given `path`. Incoming requests are routed to `handler` only if the paths are exactly the same. Raises `ValueError` if the given `path` is already in use.<br><br>This method may be called in a `with` statement to remove the handler automatically.</span>
 
 <code>**def remove**(path: str)</code><br>
 <span class="docs">Removes the handler that is attached to the given `path`.</span>

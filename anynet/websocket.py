@@ -18,6 +18,10 @@ OPCODE_DISCONNECT = 8
 OPCODE_PING = 9
 OPCODE_PONG = 10
 
+STATE_CONNECTED = 0
+STATE_DISCONNECTING = 1
+STATE_DISCONNECTED = 2
+
 
 def apply_mask(data, key):
 	return bytes([data[i] ^ key[i % 4] for i in range(len(data))])
@@ -30,7 +34,7 @@ def calculate_key_hash(key):
 def check_handshake(request, protocol):
 	if request.method != "GET": return 405
 	
-	if request.headers.get("Connection").lower() != "upgrade": return 400
+	if request.headers.get("Connection", "").lower() != "upgrade": return 400
 	if request.headers.get("Upgrade") != "websocket": return 400
 	
 	if "Sec-WebSocket-Key" not in request.headers: return 400
@@ -125,7 +129,7 @@ class WSPacketClient:
 				self.buffer += await self.client.recv()
 			except util.StreamError:
 				logger.debug("WS: underlying connection was closed")
-				await self.packets.close()
+				await self.cleanup()
 				return
 			
 	async def process_buffer(self):
@@ -182,8 +186,10 @@ class WSPacketClient:
 				raise WSError("Control frame must have FIN set")
 			packet = WSPacket(opcode, payload)
 			await self.packets.put(packet)
-			
+	
 	async def send(self, opcode, payload=b""):
+		logger.debug("Sending WS packet: <opcode=%i length=%i>" %(opcode, len(payload)))
+		
 		data = bytes([0x80 | opcode])
 		
 		mask = 0x80 if not self.server_mode else 0
@@ -206,6 +212,13 @@ class WSPacketClient:
 	async def recv(self):
 		return await self.packets.get()
 	
+	async def cleanup(self):
+		await self.packets.eof()
+	
+	async def close(self):
+		await self.client.close()
+		await self.cleanup()
+	
 	def local_address(self): return self.client.local_address()
 	def remote_address(self): return self.client.remote_address()
 	def remote_certificate(self): return self.client.remote_certificate()
@@ -218,25 +231,29 @@ class WebSocketClient:
 		
 		self.binary_packets = queue.create()
 		self.text_packets = queue.create()
+		
+		self.close_event = anyio.Event()
+		
+		self.state = STATE_CONNECTED
 	
 	async def __aenter__(self): return self
 	async def __aexit__(self, typ, exc, tb):
-		await self.stop()
-		
+		await self.cleanup()
+	
 	async def start_client(self, host, path, protocols):
 		await self.client.start_client(host, path, protocols)
 		self.group.start_soon(self.process)
-		
+	
 	async def start_server(self):
 		await self.client.start_server()
 		self.group.start_soon(self.process)
 		
 	async def process(self):
-		while True:
+		while self.state != STATE_DISCONNECTED:
 			try:
 				packet = await self.client.recv()
 			except util.StreamError:
-				await self.stop()
+				await self.cleanup()
 				return
 			await self.process_packet(packet.opcode, packet.payload)
 	
@@ -249,39 +266,57 @@ class WebSocketClient:
 			await self.client.send(OPCODE_PONG, payload)
 		elif opcode == OPCODE_DISCONNECT:
 			logger.debug("Received disconnect packet")
-			await self.client.send(OPCODE_DISCONNECT)
-			await self.stop()
+			if self.state == STATE_CONNECTED:
+				await self.client.send(OPCODE_DISCONNECT)
+			await self.close()
 		else:
 			raise ValueError("WS packet has unknown opcode: %i" %opcode)
 	
-	async def stop(self):
-		await self.binary_packets.close()
-		await self.text_packets.close()
-		
+	async def cleanup(self):
+		self.state = STATE_DISCONNECTED
+		self.close_event.set()
+		await self.binary_packets.eof()
+		await self.text_packets.eof()
+	
 	async def close(self):
-		logger.debug("Closing WS connection")
-		await self.stop()
-		with util.catch(util.StreamError, silent=True):
-			await self.client.send(OPCODE_DISCONNECT)
-		logger.debug("WS connection is closed")
-			
+		await self.cleanup()
+		await self.client.close()
+	
+	async def disconnect(self):
+		if self.state != STATE_CONNECTED: return
+		
+		try:
+			logger.debug("Closing WS connection")
+			self.state = STATE_DISCONNECTING
+			with util.catch(Exception):
+				await self.client.send(OPCODE_DISCONNECT)
+			await self.close_event.wait()
+			logger.debug("WS connection is closed")
+		finally:
+			await self.close()
+	
 	async def send(self, data):
+		if self.state != STATE_CONNECTED:
+			raise anyio.ClosedResourceError("WS connection is closed")
 		await self.client.send(OPCODE_BINARY, data)
+	
 	async def send_text(self, text):
+		if self.state != STATE_CONNECTED:
+			raise anyio.ClosedResourceError("WS connection is closed")
 		await self.client.send(OPCODE_TEXT, text.encode())
 
 	async def recv(self):
 		return await self.binary_packets.get()
 	async def recv_text(self):
 		return await self.text_packets.get()
-		
+	
 	def local_address(self): return self.client.local_address()
 	def remote_address(self): return self.client.remote_address()
 	def remote_certificate(self): return self.client.remote_certificate()
 
 
 @contextlib.asynccontextmanager
-async def connect(url, context=None, *, protocols=None):
+async def connect(url, context=None, *, protocols=None, disconnect_timeout=None):
 	logger.debug("Connecting WS client to %s", url)
 	
 	scheme, host, port, path = util.parse_url(url)
@@ -303,18 +338,20 @@ async def connect(url, context=None, *, protocols=None):
 			async with WebSocketClient(client, group) as client:
 				await client.start_client(host, path, protocols)
 				yield client
-				await client.close()
+				with anyio.move_on_after(disconnect_timeout):
+					await client.disconnect()
 	
 	logger.debug("WS client is closed")
 
 @contextlib.asynccontextmanager
-async def route(handler, router, path, *, protocol=None):
+async def route(handler, router, path, *, protocol=None, disconnect_timeout=None):
 	async def process(client):
 		async with util.create_task_group() as group:
 			async with WebSocketClient(client, group) as client:
 				await client.start_server()
 				await handler(client)
-				await client.close()
+				with anyio.move_on_after(disconnect_timeout):
+					await client.disconnect()
 	
 	async def handle(client, request):
 		host, port = client.remote_address()
@@ -331,7 +368,7 @@ async def route(handler, router, path, *, protocol=None):
 	logger.info("WS server is closed")
 
 @contextlib.asynccontextmanager
-async def serve(handler, host="", port=0, context=None, *, path="/", protocol=None):
+async def serve(handler, host="", port=0, context=None, *, path="/", protocol=None, disconnect_timeout=None):
 	async with http.serve_router(host, port, context) as router:
-		async with route(handler, router, path, protocol=protocol):
+		async with route(handler, router, path, protocol=protocol, disconnect_timeout=disconnect_timeout):
 			yield

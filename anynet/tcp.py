@@ -19,6 +19,9 @@ class TCPClient:
 	async def recv(self, num=65536):
 		return await self.stream.receive(num)
 	
+	async def close(self):
+		await self.stream.aclose()
+	
 	def local_address(self):
 		return self.stream.extra(anyio.abc.SocketAttribute.local_address)
 	def remote_address(self):
