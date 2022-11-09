@@ -56,10 +56,10 @@ This class represents a subject or issuer name. There are two ways to access its
 ## TLSCertificate
 This class should not be instantiated directly. Instead, one of the static methods should be used.
 
-<code>**subject**: [X509Name](#x509name) = [X509Name](#x509name)</code><br>
+<code>**subject**: [X509Name](#x509name) = [X509Name](#x509name)()</code><br>
 <span class="docs">The subject name.</span>
 
-<code>**issuer**: [X509Name](#x509name) = [X509Name](#x509name)</code><br>
+<code>**issuer**: [X509Name](#x509name) = [X509Name](#x509name)()</code><br>
 <span class="docs">The issuer name.</span>
 
 <code>**def sign**(key: [TLSPrivateKey](#tlsprivatekey), alg: str = "sha256") -> None</code><br>
