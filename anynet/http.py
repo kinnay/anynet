@@ -291,7 +291,7 @@ class HTTPMessage:
 		elif self.json is not None:
 			if "Content-Type" not in self.headers:
 				self.headers["Content-Type"] = "application/json"
-			text = json.dumps(self.json)
+			text = json.dumps(self.json, separators=(",", ":"))
 			
 		elif self.xml is not None:
 			if "Content-Type" not in self.headers:
