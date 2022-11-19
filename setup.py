@@ -8,7 +8,7 @@ long_description = \
 
 setuptools.setup(
 	name = "anynet",
-	version = "0.0.15",
+	version = "0.0.16",
 	description = "Networking library based on anyio",
 	long_description = long_description,
 	author = "Yannik Marchand",
@@ -18,7 +18,7 @@ setuptools.setup(
 	license = "MIT",
 	
 	install_requires=[
-		"anyio >= 3.1.0",
+		"anyio ~= 3.1.0",
 		"cryptography",
 		"pyopenssl",
 		"netifaces",

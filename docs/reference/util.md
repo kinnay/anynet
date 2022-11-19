@@ -22,13 +22,16 @@ Provides useful functions that didn't fit into another module.
 <span class="docs">Converts an integer to an IPv4 address string in big-endian byte order.</span>
 
 <code>**def local_address**() -> str</code><br>
-<span class="docs">Returns the local IPv4 address of the default gateway. Raises `ConnectionError` if no IPv4 interface was found.</span>
+<span class="docs">Returns the local IPv4 address of the default gateway.</span>
 
 <code>**def broadcast_address**() -> str</code><br>
-<span class="docs">Returns the IPv4 broadcast address of the default gateway. Raises `ConnectionError` if no IPv4 interface was found.</span>
+<span class="docs">Returns the IPv4 broadcast address of the default gateway.</span>
 
 <code>**def parse_url**(url: str) -> tuple[str, str, int, str]</code><br>
 <span class="docs">Parses the given URL and returns the tuple `(scheme, host, port, path)`. The `scheme`, `port` and `path` are set to `None` if they are not in the URL. Raises `ValueError` if the URL is invalid.</span>
 
 <code>**def make_url**(scheme: str, host: str, port: int, path: str) -> str</code><br>
 <span class="docs">Creates a URL string from the given parameters. `scheme`, `port` and `path` may be set to `None`.</span>
+
+<code>**async with create_task_group**() -> anyio.abc.TaskGroup</code><br>
+<span class="docs">Creates a task group that is cancelled if the end of the `async with` block is reached.</span>

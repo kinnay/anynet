@@ -14,7 +14,7 @@ Provides a class that schedules events after a certain amount of time.
 <span class="docs">Schedules an asynchronous function call after `delay` seconds. The call is repeated every `delay` seconds. Returns a handle that can be passed to `remove()`.</span>
 
 <code>**def remove**(handle: int) -> None</code><br>
-<span class="docs">Cancels an event. Does nothing is `handle` is invalid.</span>
+<span class="docs">Cancels an event. Does nothing if `handle` is invalid.</span>
 
 <code>**def remove_all**() -> None</code><br>
 <span class="docs">Cancels all events.</span>

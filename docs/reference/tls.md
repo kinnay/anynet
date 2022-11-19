@@ -109,7 +109,7 @@ This class should not be instantiated directly. Instead, one of the static metho
 <span class="docs">Creates a new TLS context with the given version number.</span>
 
 <code>**def set_certificate**(cert: [TLSCertificate](#tlscertificate), key: [TLSPrivateKey](#tlsprivatekey)) -> None</code><br>
-<span class="docs">Specifies the certificate and its private key. If you want to provide intermediate certificates as well, use the `set_certificaet_chain` method instead.</span>
+<span class="docs">Specifies the certificate and its private key. If you want to provide intermediate certificates as well, use the `set_certificate_chain` method instead.</span>
 
 <code>**def set_certificate_chain**(certs: list[[TLSCertificate](#tlscertificate)], key: [TLSPrivateKey](#tlsprivatekey)) -> None</code><br>
 <span class="docs">Specifies a list of certificates and the private key.</span>

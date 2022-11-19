@@ -74,27 +74,28 @@ def make_url(scheme, host, port, path):
 		url += path
 	return url
 
-@contextlib.asynccontextmanager
-async def create_task_group():
-	async with anyio.create_task_group() as group:
-		yield group
-		group.cancel_scope.cancel()
+def default_callback(exc):
+	logger.warning("An exception has occurred: %s" %exc)
 
 @contextlib.contextmanager
-def catch(cls, *, silent=False):
+def catch(cls, callback=default_callback):
 	try:
 		yield
 	except anyio.ExceptionGroup as e:
 		filtered = []
 		for exc in e.exceptions:
 			if isinstance(exc, cls):
-				if not silent:
-					logger.exception("An exception occurred")
+				callback(exc)
 			else:
 				filtered.append(exc)
 		e.exceptions = filtered
 		if filtered:
 			raise
 	except cls as e:
-		if not silent:
-			logger.exception("An exception occurred")
+		callback(e)
+
+@contextlib.asynccontextmanager
+async def create_task_group():
+	async with anyio.create_task_group() as group:
+		yield group
+		group.cancel_scope.cancel()
