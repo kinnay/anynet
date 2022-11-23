@@ -18,7 +18,6 @@ Feel free to open a pull request or issue on [github](https://github.com/kinnay/
 * [streams](reference/streams.md)
 * [tcp](reference/tcp.md)
 * [tls](reference/tls.md)
-* [types](reference/types.md)
 * [udp](reference/udp.md)
 * [util](reference/util.md)
 * [websocket](reference/websocket.md)
