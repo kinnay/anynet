@@ -93,16 +93,19 @@ When an HTTP message is parsed, the `body` attribute is always filled in. The ot
 <span class="docs">The form parameters in the body. The difference with the `form` attribute is that the names and values are *not* url-encoded automatically. The `Content-Type` defaults to `application/x-www-form-urlencoded`.</span>
 
 <code>**json**: dict = None</code><br>
-<span class="docs">The JSON body. The `Content-Type` defaults to `application/json`.
+<span class="docs">The JSON body. The `Content-Type` defaults to `application/json`.</span>
 
 <code>**xml**: [XMLTree](xml.md#xmltree) = None</code><br>
-<span class="docs">An [XMLTree](xml.md#xmltree) that represents the body. The `Content-Type` defaults to `application/xml`.
+<span class="docs">An [XMLTree](xml.md#xmltree) that represents the body. The `Content-Type` defaults to `application/xml`.</span>
 
 <code>**files**: MultiDict[str, bytes] = None</code><br>
-<span class="docs">A list of binary files. The `Content-Type` defaults to `multipart/form-data`.
+<span class="docs">A list of binary files. The `Content-Type` defaults to `multipart/form-data`.</span>
 
 <code>**boundary**: str = "--------BOUNDARY--------"</code><br>
 <span class="docs">The boundary string that's used if the body is encoded from `files`.</span>
+
+<code>**json_options**: dict = {"separators": (",", ":")}</code><br>
+<span class="docs">Additional keyword arguments that are passed to `json.dumps`.</span>
 
 <code>**def encode**() -> bytes</code><br>
 <span class="docs">Encodes the HTTP message.</span>

@@ -184,6 +184,10 @@ class HTTPMessage:
 		
 		self.boundary = "--------BOUNDARY--------"
 		
+		self.json_options = {
+			"separators": (",", ":")
+		}
+	
 	def check_version(self):
 		if not self.version.startswith("HTTP/"):
 			raise HTTPError("HTTP version must start with HTTP/")
@@ -291,7 +295,7 @@ class HTTPMessage:
 		elif self.json is not None:
 			if "Content-Type" not in self.headers:
 				self.headers["Content-Type"] = "application/json"
-			text = json.dumps(self.json, separators=(",", ":"))
+			text = json.dumps(self.json, **self.json_options)
 			
 		elif self.xml is not None:
 			if "Content-Type" not in self.headers:
