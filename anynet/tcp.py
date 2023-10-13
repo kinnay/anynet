@@ -38,7 +38,7 @@ async def connect(host, port):
 async def serve(handler, host="", port=0):
 	async def handle(stream):
 		async with stream:
-			with util.catch(Exception):
+			with util.catch():
 				await handler(TCPClient(stream))
 		
 	if not host:

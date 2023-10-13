@@ -288,7 +288,7 @@ class WebSocketClient:
 		try:
 			logger.debug("Closing WS connection")
 			self.state = STATE_DISCONNECTING
-			with util.catch(Exception):
+			with util.catch():
 				await self.client.send(OPCODE_DISCONNECT)
 			await self.close_event.wait()
 			logger.debug("WS connection is closed")

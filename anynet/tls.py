@@ -261,7 +261,7 @@ async def create_listener(host, port, context):
 @contextlib.asynccontextmanager
 async def serve(handler, host="", port=0, context=None):
 	async def handle(stream):
-		with util.catch(Exception):
+		with util.catch():
 			if context:
 				try:
 					stream = await anyio.streams.tls.TLSStream.wrap(

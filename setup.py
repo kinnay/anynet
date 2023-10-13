@@ -18,7 +18,7 @@ setuptools.setup(
 	license = "MIT",
 	
 	install_requires=[
-		"anyio ~= 3.1",
+		"anyio ~= 4.0",
 		"pyopenssl",
 		"netifaces",
 		"multidict"
