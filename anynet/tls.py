@@ -14,19 +14,9 @@ logger = logging.getLogger(__name__)
 TYPE_DER = 0
 TYPE_PEM = 1
 
-VERSION_TLS = 0
-VERSION_TLS11 = 1
-VERSION_TLS12 = 2
-
 TypeMap = {
 	TYPE_DER: crypto.FILETYPE_ASN1,
 	TYPE_PEM: crypto.FILETYPE_PEM
-}
-
-VersionMap = {
-	VERSION_TLS: ssl.PROTOCOL_TLS,
-	VERSION_TLS11: ssl.PROTOCOL_TLSv1_1,
-	VERSION_TLS12: ssl.PROTOCOL_TLSv1_2
 }
 
 
@@ -171,8 +161,7 @@ class TLSPrivateKey:
 
 
 class TLSContext:
-	def __init__(self, version=VERSION_TLS):
-		self.version = version
+	def __init__(self):
 		self.authority = None
 		self.certs = None
 		self.key = None
@@ -194,7 +183,7 @@ class TLSContext:
 		return self.make_client_context()
 	
 	def make_server_context(self):
-		context = ssl.SSLContext(VersionMap[self.version])
+		context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
 		if self.certs and self.key:
 			set_certificate_chain(context, self.certs, self.key)
 		else:
@@ -210,7 +199,7 @@ class TLSContext:
 		return context
 	
 	def make_client_context(self):
-		context = ssl.SSLContext(VersionMap[self.version])
+		context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 		if self.certs and self.key:
 			set_certificate_chain(context, self.certs, self.key)
 		

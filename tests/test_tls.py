@@ -11,10 +11,6 @@ IP = "127.0.0.1"
 def test_constants():
 	assert tls.TYPE_DER == 0
 	assert tls.TYPE_PEM == 1
-	
-	assert tls.VERSION_TLS == 0
-	assert tls.VERSION_TLS11 == 1
-	assert tls.VERSION_TLS12 == 2
 
 
 @pytest.mark.anyio
