@@ -5,6 +5,7 @@ This is a simple asynchronous networking library that I'm using for hobby projec
 
 * [Contributing](#contributing)
 * [API Reference](#api-reference)
+* [Changelog](changelog)
 
 ## Contributing
 Feel free to open a pull request or issue on [github](https://github.com/kinnay/anynet). If you open a pull request, please try to follow the current code style as much as possible, and consider writing a test for new features and bug fixes.
