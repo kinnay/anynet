@@ -11,7 +11,6 @@ Feel free to open a pull request or issue on [github](https://github.com/kinnay/
 
 ## API Reference
 
-* [crypto](reference/crypto.md)
 * [http](reference/http.md)
 * [queue](reference/queue.md)
 * [scheduler](reference/scheduler.md)
