@@ -412,7 +412,10 @@ class HTTPRequest(HTTPMessage):
 		request.path = path
 		request.params = params
 		return request
-		
+	
+	@classmethod
+	def head(cls, path):
+		return cls.build("HEAD", path)
 	@classmethod
 	def get(cls, path):
 		return cls.build("GET", path)
@@ -792,6 +795,7 @@ async def call(url, method, **kwargs):
 	url = util.make_url(scheme, host, port, None)
 	return await request(url, req, **kwargs)
 
+async def head(url, **kwargs): return await call(url, "HEAD", **kwargs)
 async def get(url, **kwargs): return await call(url, "GET", **kwargs)
 async def post(url, **kwargs): return await call(url, "POST", **kwargs)
 async def put(url, **kwargs): return await call(url, "PUT", **kwargs)

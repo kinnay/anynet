@@ -24,12 +24,13 @@ Provides HTTP-related classes, including a client and a server. Note that this i
 <code>**class** [HTTPRouter](#httprouter)</code><br>
 <span class="docs">Routes incoming HTTP requests based on the request path.</span>
 
+<code>**async def head**(url: str, \*\*kwargs) -> [HTTPResponse](#httpresponse)</code><br>
 <code>**async def get**(url: str, \*\*kwargs) -> [HTTPResponse](#httpresponse)</code><br>
 <code>**async def post**(url: str, \*\*kwargs) -> [HTTPResponse](#httpresponse)</code><br>
 <code>**async def put**(url: str, \*\*kwargs) -> [HTTPResponse](#httpresponse)</code><br>
 <code>**async def patch**(url: str, \*\*kwargs) -> [HTTPResponse](#httpresponse)</code><br>
 <code>**async def delete**(url: str, \*\*kwargs) -> [HTTPResponse](#httpresponse)</code><br>
-<span class="docs">Performs a `GET`, `POST`, `PUT`, `PATCH` or `DELETE` request. These methods are provided for convenience.<br><br>`url` must contain at least the hostname or IP address of the server, and the path of the HTTP request. Scheme and port are optional. Example: `https://example.com:8080/test.html`.<br><br>The following keyword arguments may be provided to initialize the HTTP request: `headers`, `body`, `text`, `files`, `boundary`, `form`, `rawform`, `json`, `xml`, `params`, and `continue_threshold`. If no `Host` header is given it is filled in automatically based on the given `url`.<br><br>Other keyword arguments are passed on to `request()`.</span>
+<span class="docs">Performs a `HEAD`, `GET`, `POST`, `PUT`, `PATCH` or `DELETE` request. These methods are provided for convenience.<br><br>`url` must contain at least the hostname or IP address of the server, and the path of the HTTP request. Scheme and port are optional. Example: `https://example.com:8080/test.html`.<br><br>The following keyword arguments may be provided to initialize the HTTP request: `headers`, `body`, `text`, `files`, `boundary`, `form`, `rawform`, `json`, `xml`, `params`, and `continue_threshold`. If no `Host` header is given it is filled in automatically based on the given `url`.<br><br>Other keyword arguments are passed on to `request()`.</span>
 
 <code>**async def request**(url: str, req: [HTTPRequest](#httprequest), context: [TLSContext](tls.md#tlscontext) = None, \*\*kwargs) -> [HTTPResponse](#httpresponse)</code><br>
 <span class="docs">Performs an HTTP request on a new connection.<br><br>`url` must contain at least the hostname or IP address of the server. Scheme and port are optional. Example: `https://example.com:8080`.<br><br>If no scheme is provided, the connection is secured with TLS precisely if a TLS context is provided. If the scheme is `https` but no TLS context is provided the connection is secured with the default TLS context.<br><br>The keyword arguments are forwarded to [`HTTPClient.request`](#httpclient).</span>
@@ -139,12 +140,13 @@ This class inherits [`HTTPMessage`](#httpmessage). During encoding, the `Expect`
 <span class="docs">Creates a new HTTP request.</span>
 
 <code style="color: blue">@classmethod</code><br>
+<code>**def head**(path: str) -> [HTTPRequest](#httprequest)</code><br>
 <code>**def get**(path: str) -> [HTTPRequest](#httprequest)</code><br>
 <code>**def post**(path: str) -> [HTTPRequest](#httprequest)</code><br>
 <code>**def put**(path: str) -> [HTTPRequest](#httprequest)</code><br>
 <code>**def patch**(path: str) -> [HTTPRequest](#httprequest)</code><br>
 <code>**def delete**(path: str) -> [HTTPRequest](#httprequest)</code><br>
-<span class="docs">Creates a `GET`, `POST`, `PUT`, `PATCH` or `DELETE` request with the given path. If the given path contains form parameters, they are parsed and put into `params`.</span>
+<span class="docs">Creates a `HEAD`, `GET`, `POST`, `PUT`, `PATCH` or `DELETE` request with the given path. If the given path contains form parameters, they are parsed and put into `params`.</span>
 
 ## HTTPResponse
 This class inherits [`HTTPMessage`](#httpmessage).

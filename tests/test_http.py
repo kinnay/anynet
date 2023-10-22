@@ -79,6 +79,11 @@ class TestHTTPRequest:
 		assert request.encode_body() == b""
 	
 	def test_classmethod(self):
+		request = http.HTTPRequest.head("/test?x=1")
+		assert request.method == "HEAD"
+		assert request.path == "/test"
+		assert request.params == {"x": "1"}
+
 		request = http.HTTPRequest.get("/test?x=1")
 		assert request.method == "GET"
 		assert request.path == "/test"
@@ -214,10 +219,14 @@ class TestHTTPServer:
 	async def test_methods(self):
 		async def handler(client, request):
 			response = http.HTTPResponse(200)
-			response.text = request.method
+			if request.method != "HEAD":
+				response.text = request.method
 			return response
 			
 		async with http.serve(handler, "localhost", 12345):
+			response = await http.head("localhost:12345")
+			assert not response.text
+
 			response = await http.get("localhost:12345")
 			assert response.text == "GET"
 			
