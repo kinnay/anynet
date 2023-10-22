@@ -33,13 +33,6 @@ Provides classes to work with TCP/TLS connections.
 `TYPE_PEM (1)`<br>
 <span class="docs">Specifies text encoding (PEM)</span>
 
-`VERSION_TLS (0)`<br>
-<span class="docs">Selects the highest TLS version supported by the client and the server.</span><br>
-`VERSION_TLS11 (1)`<br>
-<span class="docs">Selects TLS version 1.1.</span><br>
-`VERSION_TLS12 (2)`<br>
-<span class="docs">Selects TLS version 1.2.</span>
-
 ## X509Name
 This class represents a subject or issuer name. There are two ways to access its fields: either by item lookup (`subject["CN"]`) or by attribute lookup (`subject.common_name`). The following items and attributes are currently defined:
 
@@ -105,8 +98,8 @@ This class should not be instantiated directly. Instead, one of the static metho
 <span class="docs">Generates a random private key with the given number of bits.</span>
 
 ## TLSContext
-<code>**def _\_init__**(version: int = VERSION_TLS)</code><br>
-<span class="docs">Creates a new TLS context with the given version number.</span>
+<code>**def _\_init__**()</code><br>
+<span class="docs">Creates a new TLS context.</span>
 
 <code>**def set_certificate**(cert: [TLSCertificate](#tlscertificate), key: [TLSPrivateKey](#tlsprivatekey)) -> None</code><br>
 <span class="docs">Specifies the certificate and its private key. If you want to provide intermediate certificates as well, use the `set_certificate_chain` method instead.</span>
