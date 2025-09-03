@@ -222,13 +222,13 @@ class HTTPMessage:
 			try:
 				self.json = json.loads(self.text)
 			except json.JSONDecodeError:
-				raise HTTPError("Failed to decode JSON body")
+				logger.warning("Failed to decode JSON body")
 		
 		if is_xml:
 			try:
 				self.xml = xml.parse(self.text)
 			except ValueError as e:
-				raise HTTPError("Failed to decode XML body: %s" %e)
+				logger.warning("Failed to decode XML body: %s" %e)
 		
 		if type.startswith("multipart/form-data"):
 			if "boundary" not in param:
