@@ -98,6 +98,12 @@ This class should not be instantiated directly. Instead, one of the static metho
 <span class="docs">Generates a random private key with the given number of bits.</span>
 
 ## TLSContext
+This class contains configuration for a TLS client or server.
+
+By default, TLS clients verify the server certificate with the system's trusted CA store, unless `set_authority` is called, in which case only the given authority is trusted. TLS servers do not ask for a client certificate, unless `set_authority` is called.
+
+If `disable_verification` is called, all certificates are trusted, regardless of whether `set_authority` has been called.
+
 <code>**def _\_init__**()</code><br>
 <span class="docs">Creates a new TLS context.</span>
 
@@ -109,6 +115,9 @@ This class should not be instantiated directly. Instead, one of the static metho
 
 <code>**def set_authority**(cert: [TLSCertificate](#tlscertificate)) -> None</code><br>
 <span class="docs">Verifies the certificate with the given CA.</span>
+
+<code>**def disable_verification**() -> None</code><br>
+<span class="docs">Disables certificate verification. If both `set_authority` and `disable_verification` are called, the former is ignored.</span>
 
 <code>**def get**(server: bool) -> ssl.SSLContext</code><br>
 <span class="docs">Returns the TLS context as a standard `ssl.SSLContext`.</span>

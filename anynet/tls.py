@@ -165,6 +165,7 @@ class TLSContext:
 		self.authority = None
 		self.certs = None
 		self.key = None
+		self.verification_enabled = True
 	
 	def set_certificate(self, cert, key):
 		self.certs = [cert]
@@ -176,6 +177,9 @@ class TLSContext:
 	
 	def set_authority(self, authority):
 		self.authority = authority
+	
+	def disable_verification(self):
+		self.verification_enabled = False
 	
 	def get(self, server):
 		if server:
@@ -190,7 +194,8 @@ class TLSContext:
 			raise ValueError("Please provide a server certificate")
 		
 		context.verify_mode = ssl.CERT_NONE
-		if self.authority:
+
+		if self.authority and self.verification_enabled:
 			data = self.authority.encode(TYPE_DER)
 			context.load_verify_locations(cadata=data)
 			context.verify_mode = ssl.CERT_REQUIRED
@@ -203,14 +208,16 @@ class TLSContext:
 		if self.certs and self.key:
 			set_certificate_chain(context, self.certs, self.key)
 		
-		context.verify_mode = ssl.CERT_REQUIRED
+		if not self.verification_enabled:
+			context.check_hostname = False
+			context.verify_mode = ssl.CERT_NONE
+
 		if self.authority:
 			data = self.authority.encode(TYPE_DER)
 			context.load_verify_locations(cadata=data)
 		else:
 			context.load_default_certs()
 		
-		context.check_hostname = True
 		return context
 
 
