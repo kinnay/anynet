@@ -14,79 +14,79 @@ logger = logging.getLogger(__name__)
 
 
 StreamError = (
-	anyio.EndOfStream, anyio.ClosedResourceError,
-	anyio.BrokenResourceError
+    anyio.EndOfStream, anyio.ClosedResourceError,
+    anyio.BrokenResourceError
 )
 
 
 def is_decimal(s: str) -> bool:
-	return s.isdecimal()
+    return s.isdecimal()
 
 def is_hexadecimal(s: str) -> bool:
-	return bool(s and all(c in string.hexdigits for c in s))
+    return bool(s and all(c in string.hexdigits for c in s))
 
 def ip_to_hex(ip: str) -> int:
-	try:
-		data = socket.inet_aton(ip)
-	except OSError:
-		raise ValueError("IP address is invalid")
-	return struct.unpack(">I", data)[0]
+    try:
+        data = socket.inet_aton(ip)
+    except OSError:
+        raise ValueError("IP address is invalid")
+    return struct.unpack(">I", data)[0]
 
 def ip_from_hex(value: int) -> str:
-	return socket.inet_ntoa(struct.pack(">I", value))
-	
+    return socket.inet_ntoa(struct.pack(">I", value))
+    
 def local_address() -> str:
-	interface = netifaces.gateways()["default"][netifaces.AF_INET][1]
-	addresses = netifaces.ifaddresses(interface)[netifaces.AF_INET][0]
-	return addresses["addr"]
-	
+    interface = netifaces.gateways()["default"][netifaces.AF_INET][1]
+    addresses = netifaces.ifaddresses(interface)[netifaces.AF_INET][0]
+    return addresses["addr"]
+    
 def broadcast_address() -> str:
-	interface = netifaces.gateways()["default"][netifaces.AF_INET][1]
-	addresses = netifaces.ifaddresses(interface)[netifaces.AF_INET][0]
-	return addresses["broadcast"]
+    interface = netifaces.gateways()["default"][netifaces.AF_INET][1]
+    addresses = netifaces.ifaddresses(interface)[netifaces.AF_INET][0]
+    return addresses["broadcast"]
 
 def parse_url(url: str) -> tuple[str | None, str, int | None, str | None]:
-	scheme = None
-	if "://" in url:
-		scheme, url = url.split("://", 1)
-	
-	path = None
-	if "/" in url:
-		url, path = url.split("/", 1)
-		path = "/" + path
-	
-	host = url
-	port = None
-	if ":" in url:
-		host, port_text = url.split(":", 1)
-		port = int(port_text)
-	
-	return scheme, host, port, path
+    scheme = None
+    if "://" in url:
+        scheme, url = url.split("://", 1)
+    
+    path = None
+    if "/" in url:
+        url, path = url.split("/", 1)
+        path = "/" + path
+    
+    host = url
+    port = None
+    if ":" in url:
+        host, port_text = url.split(":", 1)
+        port = int(port_text)
+    
+    return scheme, host, port, path
 
 def make_url(
-	scheme: str | None, host: str, port: int | None, path: str | None
+    scheme: str | None, host: str, port: int | None, path: str | None
 ) -> str:
-	url = ""
-	if scheme is not None:
-		url += scheme + "://"
-	url += host
-	if port is not None:
-		url += ":%i" %port
-	if path is not None:
-		if not path.startswith("/"):
-			raise ValueError("Path must start with '/'")
-		url += path
-	return url
+    url = ""
+    if scheme is not None:
+        url += scheme + "://"
+    url += host
+    if port is not None:
+        url += ":%i" %port
+    if path is not None:
+        if not path.startswith("/"):
+            raise ValueError("Path must start with '/'")
+        url += path
+    return url
 
 @contextlib.contextmanager
 def catch() -> Iterator[None]:
-	try:
-		yield
-	except Exception as e:
-		logger.warning("An exception has occurred: %s" %e)
+    try:
+        yield
+    except Exception as e:
+        logger.warning("An exception has occurred: %s" %e)
 
 @contextlib.asynccontextmanager
 async def create_task_group() -> AsyncIterator[anyio.abc.TaskGroup]:
-	async with anyio.create_task_group() as group:
-		yield group
-		group.cancel_scope.cancel()
+    async with anyio.create_task_group() as group:
+        yield group
+        group.cancel_scope.cancel()
