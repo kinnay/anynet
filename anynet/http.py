@@ -1,11 +1,11 @@
 
-from anynet import tls, util, xml, scheduler
+from anynet import tls, util, xml
 from multidict import MultiDict, CIMultiDict
-import urllib.parse
+
 import contextlib
 import datetime
-import anyio
 import json
+import urllib.parse
 
 import logging
 logger = logging.getLogger(__name__)

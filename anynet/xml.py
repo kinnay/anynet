@@ -1,11 +1,13 @@
 
+from typing import Iterator
+
 import string
 
 
 NAME_CHARS = string.ascii_letters + string.digits + ":-_"
 
 
-def decode_entities(s):
+def decode_entities(s: str) -> str:
 	s = s.replace("&quot;", '"')
 	s = s.replace("&apos;", "'")
 	s = s.replace("&lt;", "<")
@@ -13,7 +15,7 @@ def decode_entities(s):
 	s = s.replace("&amp;", "&")
 	return s
 
-def encode_entities(s):
+def encode_entities(s: str) -> str:
 	s = s.replace("&", "&amp;")
 	s = s.replace("'", "&quot;")
 	s = s.replace('"', "&apos;")
@@ -23,31 +25,35 @@ def encode_entities(s):
 
 
 class TextStream:
-	def __init__(self, text):
-		self.text = text
-		self.pos = 0
+	_text: str
+	_pos: int
+
+	def __init__(self, text: str):
+		self._text = text
+		self._pos = 0
 		
-	def peek(self, size=1):
+	def peek(self, size: int = 1) -> str:
 		if self.available() < size:
 			raise OverflowError("Buffer overflow in text stream")
-		return self.text[self.pos : self.pos + size]
+		return self._text[self._pos : self._pos + size]
 		
-	def read(self, size=1):
+	def read(self, size: int = 1) -> str:
 		if self.available() < size:
 			raise OverflowError("Buffer overflow in text stream")
-		text = self.text[self.pos : self.pos + size]
-		self.pos += size
+		text = self._text[self._pos : self._pos + size]
+		self._pos += size
 		return text
 		
-	def skip(self, size=1):
-		self.pos += size
+	def skip(self, size: int = 1) -> None:
+		self._pos += size
 		
-	def available(self): return len(self.text) - self.pos
+	def available(self) -> int:
+		return len(self._text) - self._pos
 		
-	def eof(self):
-		return self.pos == len(self.text)
+	def eof(self) -> bool:
+		return self._pos == len(self._text)
 		
-	def skip_whitespace(self):
+	def skip_whitespace(self) -> None:
 		while not self.eof():
 			char = self.peek()
 			if char not in string.whitespace:
@@ -56,49 +62,56 @@ class TextStream:
 
 
 class XMLTree:
-	def __init__(self, name):
+	children: list[XMLTree]
+	attrs: dict[str, str]
+	text: str | None
+	name: str
+
+	def __init__(self, name: str):
 		self.children = []
 		self.attrs = {}
 		
 		self.text = None
 		self.name = name
 	
-	def __str__(self):
+	def __str__(self) -> str:
 		return self.encode()
 	
-	def __contains__(self, name):
+	def __contains__(self, name: str) -> bool:
 		for node in self.children:
 			if node.name == name:
 				return True
 		return False
 	
-	def __getitem__(self, name):
+	def __getitem__(self, name: str) -> XMLTree:
 		for node in self.children:
 			if node.name == name:
 				return node
 		raise KeyError(name)
 		
-	def __iter__(self):
+	def __iter__(self) -> Iterator[XMLTree]:
 		return iter(self.children)
 	
-	def __len__(self):
+	def __len__(self) -> int:
 		return len(self.children)
 		
-	def find(self, name):
+	def find(self, name: str) -> list[XMLTree]:
 		nodes = []
 		for node in self.children:
 			if node.name == name:
 				nodes.append(node)
 		return nodes
 	
-	def add(self, name, text=None, attrs={}):
+	def add(
+		self, name: str, text: str | None = None, attrs: dict[str, str] = {}
+	) -> XMLTree:
 		node = XMLTree(name)
 		node.text = text
 		node.attrs = dict(attrs)
 		self.children.append(node)
 		return node
 	
-	def encode(self):
+	def encode(self) -> str:
 		data = "<%s" %self.name
 		for name, value in self.attrs.items():
 			data += ' %s="%s"' %(name, encode_entities(value))
@@ -115,24 +128,24 @@ class XMLTree:
 		
 		
 class XMLParser:
-	def parse(self, text):
+	def parse(self, text: str) -> XMLTree:
 		stream = TextStream(text)
-		self.parse_declaration(stream)
+		self._parse_declaration(stream)
 		
 		stream.skip_whitespace()
 		
-		tree = self.parse_tree(stream)
+		tree = self._parse_tree(stream)
 		
 		stream.skip_whitespace()
 		if not stream.eof():
 			raise ValueError("XML document has data behind root tag")
 		return tree
 		
-	def parse_declaration(self, stream):
+	def _parse_declaration(self, stream: TextStream) -> None:
 		if stream.peek(6) == "<?xml ":
 			stream.read(6)
 			
-			self.parse_declaration_attribs(stream)
+			self._parse_declaration_attribs(stream)
 			
 			if stream.read() != "?":
 				raise ValueError("XML declaration is invalid")
@@ -141,33 +154,33 @@ class XMLParser:
 			if stream.read() != ">":
 				raise ValueError("XML declaration is invalid")
 			
-	def parse_declaration_attribs(self, stream):
-		version = self.parse_fixed_attribute(stream, "version")
+	def _parse_declaration_attribs(self, stream: TextStream) -> None:
+		version = self._parse_fixed_attribute(stream, "version")
 		if version != "1.0":
 			raise ValueError("XML version must be 1.0")
 		if stream.peek() == "?": return
 		
-		encoding = self.parse_fixed_attribute(stream, "encoding")
+		encoding = self._parse_fixed_attribute(stream, "encoding")
 		if stream.peek() == "?": return
 		
-		standalone = self.parse_fixed_attribute(stream, "standalone")
+		standalone = self._parse_fixed_attribute(stream, "standalone")
 		if standalone not in ["yes", "no"]:
 			raise ValueError("standalone must be either yes of no")
 			
-	def parse_tree(self, stream):
+	def _parse_tree(self, stream: TextStream) -> XMLTree:
 		if stream.read() != "<":
 			raise ValueError("Unexpected character in XML document")
 			
 		stream.skip_whitespace()
 		
-		name = self.parse_name(stream)
+		name = self._parse_name(stream)
 		tree = XMLTree(name)
 		
 		stream.skip_whitespace()
 		
 		char = stream.peek()
 		while char not in "/>":
-			name, value = self.parse_attribute(stream)
+			name, value = self._parse_attribute(stream)
 			if name in tree.attrs:
 				raise ValueError("Duplicate attributein XML document")
 			tree.attrs[name] = value
@@ -184,7 +197,7 @@ class XMLParser:
 		chars = stream.peek(2)
 		while chars != "</":
 			if chars[0] == "<":
-				tree.children.append(self.parse_tree(stream))
+				tree.children.append(self._parse_tree(stream))
 			else:
 				tree.text += chars[0]
 				stream.skip()
@@ -195,7 +208,7 @@ class XMLParser:
 		stream.skip(2)
 		stream.skip_whitespace()
 		
-		name = self.parse_name(stream)
+		name = self._parse_name(stream)
 		if name != tree.name:
 			raise ValueError(
 				"Closing tag has unexpected name: '%s' (expected '%s')" %(name, tree.name)
@@ -207,24 +220,24 @@ class XMLParser:
 		
 		return tree	
 			
-	def parse_fixed_attribute(self, stream, attr):
-		name, value = self.parse_attribute(stream)
+	def _parse_fixed_attribute(self, stream: TextStream, attr: str) -> str:
+		name, value = self._parse_attribute(stream)
 		if name != attr:
 			raise ValueError("Expected '%s' attribute, not '%s'" %(attr, name))
 		return value
 		
-	def parse_attribute(self, stream):
+	def _parse_attribute(self, stream: TextStream) -> tuple[str, str]:
 		stream.skip_whitespace()
-		key = self.parse_name(stream)
+		key = self._parse_name(stream)
 		stream.skip_whitespace()
 		if stream.read() != "=":
 			raise ValueError("Expected '=' after attribute name")
 		stream.skip_whitespace()
-		value = self.parse_string(stream)
+		value = self._parse_string(stream)
 		stream.skip_whitespace()
 		return key, value
 		
-	def parse_string(self, stream):
+	def _parse_string(self, stream: TextStream) -> str:
 		strchar = stream.read()
 		if strchar not in ["'", '"']:
 			raise ValueError("Expected string attribute")
@@ -239,7 +252,7 @@ class XMLParser:
 		string = decode_entities(string)
 		return string
 		
-	def parse_name(self, stream):
+	def _parse_name(self, stream: TextStream) -> str:
 		name = ""
 		char = stream.peek()
 		while char in NAME_CHARS:
@@ -249,7 +262,7 @@ class XMLParser:
 		return name
 		
 		
-def parse(text):
+def parse(text: str) -> XMLTree:
 	parser = XMLParser()
 	try:
 		return parser.parse(text)

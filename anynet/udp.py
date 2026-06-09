@@ -1,53 +1,76 @@
 
 from anynet import util
+from typing import AsyncIterator
+
+import anyio
+import anyio.abc
 import contextlib
 import socket
-import anyio
 
 import logging
 logger = logging.getLogger(__name__)
 
 
 class UDPSocket:
-	def __init__(self, sock):
-		self.sock = sock
-		self.lock = anyio.Lock()
+	_socket: anyio.abc.UDPSocket
+	_lock: anyio.abc.Lock
+
+	def __init__(self, socket: anyio.abc.UDPSocket):
+		self._socket = socket
+		self._lock = anyio.Lock()
 	
-	async def send(self, data, addr):
-		async with self.lock:
-			await self.sock.sendto(data, addr[0], addr[1])
-	async def recv(self):
-		return await self.sock.receive()
+	async def send(self, data: bytes, addr: tuple[str, int]) -> None:
+		async with self._lock:
+			await self._socket.sendto(data, addr[0], addr[1])
 	
-	async def close(self):
-		await self.sock.aclose()
+	async def recv(self) -> tuple[bytes, tuple[str, int]]:
+		return await self._socket.receive()
 	
-	def local_address(self):
-		return self.sock.extra(anyio.abc.SocketAttribute.local_address)
+	async def close(self) -> None:
+		await self._socket.aclose()
+	
+	def local_address(self) -> tuple[str, int]:
+		address = self._socket.extra(anyio.abc.SocketAttribute.local_address)
+		if not isinstance(address, tuple):
+			raise RuntimeError("Socket has unexpected address type")
+		return address
 
 
 class UDPClient:
-	def __init__(self, sock):
-		self.sock = sock
-		self.lock = anyio.Lock()
+	_socket: anyio.abc.ConnectedUDPSocket
+	_lock: anyio.abc.Lock
+
+	def __init__(self, socket: anyio.abc.ConnectedUDPSocket):
+		self._socket = socket
+		self._lock = anyio.Lock()
 	
-	async def send(self, data):
-		async with self.lock:
-			await self.sock.send(data)
-	async def recv(self):
-		return await self.sock.receive()
+	async def send(self, data: bytes) -> None:
+		async with self._lock:
+			await self._socket.send(data)
 	
-	async def close(self):
-		await self.sock.aclose()
+	async def recv(self) -> bytes:
+		return await self._socket.receive()
 	
-	def local_address(self):
-		return self.sock.extra(anyio.abc.SocketAttribute.local_address)
-	def remote_address(self):
-		return self.sock.extra(anyio.abc.SocketAttribute.remote_address)
+	async def close(self) -> None:
+		await self._socket.aclose()
+	
+	def local_address(self) -> tuple[str, int]:
+		address = self._socket.extra(anyio.abc.SocketAttribute.local_address)
+		if not isinstance(address, tuple):
+			raise RuntimeError("Socket has unexpected address type")
+		return address
+	
+	def remote_address(self) -> tuple[str, int]:
+		address = self._socket.extra(anyio.abc.SocketAttribute.remote_address)
+		if not isinstance(address, tuple):
+			raise RuntimeError("Socket has unexpected address type")
+		return address
 
 
 @contextlib.asynccontextmanager
-async def bind(host="", port=0, *, broadcast=False):
+async def bind(
+	host: str = "", port: int = 0, *, broadcast: bool = False
+) -> AsyncIterator[UDPSocket]:
 	if not host:
 		host = util.local_address()
 	
@@ -61,7 +84,7 @@ async def bind(host="", port=0, *, broadcast=False):
 		yield UDPSocket(sock)
 
 @contextlib.asynccontextmanager
-async def connect(host, port):
+async def connect(host: str, port: int) -> AsyncIterator[UDPClient]:
 	logger.debug("Connecting UDP client to %s:%i", host, port)
 	
 	sock = await anyio.create_connected_udp_socket(host, port)

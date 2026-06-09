@@ -1,11 +1,13 @@
 
+from typing import AsyncIterator, Iterator
+
+import anyio
+import anyio.abc
 import contextlib
 import netifaces
-import struct
 import socket
 import string
-import anyio
-import math
+import struct
 
 import logging
 logger = logging.getLogger(__name__)
@@ -17,33 +19,33 @@ StreamError = (
 )
 
 
-def is_decimal(s):
+def is_decimal(s: str) -> bool:
 	return s.isdecimal()
 
-def is_hexadecimal(s):
-	return s and all(c in string.hexdigits for c in s)
+def is_hexadecimal(s: str) -> bool:
+	return bool(s and all(c in string.hexdigits for c in s))
 
-def ip_to_hex(ip):
+def ip_to_hex(ip: str) -> int:
 	try:
 		data = socket.inet_aton(ip)
 	except OSError:
 		raise ValueError("IP address is invalid")
 	return struct.unpack(">I", data)[0]
 
-def ip_from_hex(value):
+def ip_from_hex(value: int) -> str:
 	return socket.inet_ntoa(struct.pack(">I", value))
 	
-def local_address():
+def local_address() -> str:
 	interface = netifaces.gateways()["default"][netifaces.AF_INET][1]
 	addresses = netifaces.ifaddresses(interface)[netifaces.AF_INET][0]
 	return addresses["addr"]
 	
-def broadcast_address():
+def broadcast_address() -> str:
 	interface = netifaces.gateways()["default"][netifaces.AF_INET][1]
 	addresses = netifaces.ifaddresses(interface)[netifaces.AF_INET][0]
 	return addresses["broadcast"]
 
-def parse_url(url):
+def parse_url(url: str) -> tuple[str | None, str, int | None, str | None]:
 	scheme = None
 	if "://" in url:
 		scheme, url = url.split("://", 1)
@@ -56,12 +58,14 @@ def parse_url(url):
 	host = url
 	port = None
 	if ":" in url:
-		host, port = url.split(":", 1)
-		port = int(port)
+		host, port_text = url.split(":", 1)
+		port = int(port_text)
 	
 	return scheme, host, port, path
 
-def make_url(scheme, host, port, path):
+def make_url(
+	scheme: str | None, host: str, port: int | None, path: str | None
+) -> str:
 	url = ""
 	if scheme is not None:
 		url += scheme + "://"
@@ -75,14 +79,14 @@ def make_url(scheme, host, port, path):
 	return url
 
 @contextlib.contextmanager
-def catch():
+def catch() -> Iterator[None]:
 	try:
 		yield
 	except Exception as e:
 		logger.warning("An exception has occurred: %s" %e)
 
 @contextlib.asynccontextmanager
-async def create_task_group():
+async def create_task_group() -> AsyncIterator[anyio.abc.TaskGroup]:
 	async with anyio.create_task_group() as group:
 		yield group
 		group.cancel_scope.cancel()
