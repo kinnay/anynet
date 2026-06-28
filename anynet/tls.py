@@ -27,7 +27,7 @@ TypeMap = {
 
 
 def set_certificate_chain(
-    context: ssl.SSLContext, certs: list[TLSCertificate], key: TLSPrivateKey
+    context: ssl.SSLContext, certs: "list[TLSCertificate]", key: "TLSPrivateKey"
 ) -> None:
     certfile = tempfile.NamedTemporaryFile(delete=False)
     keyfile = tempfile.NamedTemporaryFile(delete=False)
@@ -44,7 +44,7 @@ def set_certificate_chain(
     os.remove(certfile.name)
     os.remove(keyfile.name)
 
-def load_certificate_chain(filename: str) -> list[TLSCertificate]:
+def load_certificate_chain(filename: str) -> "list[TLSCertificate]":
     with open(filename, "rb") as f:
         data = f.read()
     
@@ -124,22 +124,22 @@ class TLSCertificate:
         with open(filename, "wb") as f:
             f.write(self.encode(format))
         
-    def sign(self, key: TLSPrivateKey, alg: str = "sha256") -> None:
+    def sign(self, key: "TLSPrivateKey", alg: str = "sha256") -> None:
         self.obj.sign(key.obj, alg)
-    
+
     @classmethod
-    def load(cls, filename: str, format: int) -> TLSCertificate:
+    def load(cls, filename: str, format: int) -> "TLSCertificate":
         with open(filename, "rb") as f:
             data = f.read()
         return cls.parse(data, format)
-        
+
     @classmethod
-    def parse(cls, data: bytes, format: int) -> TLSCertificate:
+    def parse(cls, data: bytes, format: int) -> "TLSCertificate":
         cert = crypto.load_certificate(TypeMap[format], data)
         return cls(cert)
-        
+
     @classmethod
-    def generate(cls, key: TLSPrivateKey) -> TLSCertificate:
+    def generate(cls, key: "TLSPrivateKey") -> "TLSCertificate":
         cert = crypto.X509()
         cert.set_pubkey(key.obj)
         
@@ -163,18 +163,18 @@ class TLSPrivateKey:
             f.write(self.encode(format))
     
     @classmethod
-    def load(cls, filename: str, format: int) -> TLSPrivateKey:
+    def load(cls, filename: str, format: int) -> "TLSPrivateKey":
         with open(filename, "rb") as f:
             data = f.read()
         return cls.parse(data, format)
-        
+
     @classmethod
-    def parse(cls, data: bytes, format: int) -> TLSPrivateKey:
+    def parse(cls, data: bytes, format: int) -> "TLSPrivateKey":
         pkey = crypto.load_privatekey(TypeMap[format], data)
         return cls(pkey)
-        
+
     @classmethod
-    def generate(cls, size: int = 2048) -> TLSPrivateKey:
+    def generate(cls, size: int = 2048) -> "TLSPrivateKey":
         pkey = crypto.PKey()
         pkey.generate_key(crypto.TYPE_RSA, size)
         return cls(pkey)
