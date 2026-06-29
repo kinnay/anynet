@@ -1,6 +1,11 @@
 
 ## Changelog
 
+### 1.2.2
+* Updated type hints to support Python 3.12.
+
+*Released on 2026-06-29*
+
 ### 1.2.1
 * Added type hints to most classes, except for the `http` and `websocket` modules.
 
