@@ -64,14 +64,14 @@ class TextStream:
 class XMLTree:
     children: "list[XMLTree]"
     attrs: dict[str, str]
-    text: str | None
+    text: str
     name: str
 
     def __init__(self, name: str):
         self.children = []
         self.attrs = {}
         
-        self.text = None
+        self.text = ""
         self.name = name
     
     def __str__(self) -> str:
@@ -103,7 +103,7 @@ class XMLTree:
         return nodes
     
     def add(
-        self, name: str, text: str | None = None, attrs: dict[str, str] = {}
+        self, name: str, text: str = "", attrs: dict[str, str] = {}
     ) -> "XMLTree":
         node = XMLTree(name)
         node.text = text
@@ -120,8 +120,7 @@ class XMLTree:
         for child in self.children:
             data += child.encode()
 
-        if self.text is not None:
-            data += encode_entities(str(self.text))
+        data += encode_entities(str(self.text))
         
         data += "</%s>" %self.name
         return data
@@ -191,8 +190,6 @@ class XMLParser:
             if stream.read() != ">":
                 raise ValueError("Unexpected character in XML document")
             return tree
-            
-        tree.text = ""
         
         chars = stream.peek(2)
         while chars != "</":
