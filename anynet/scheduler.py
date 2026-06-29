@@ -12,7 +12,7 @@ import time
 class Scheduler:
     _group: anyio.abc.TaskGroup
 
-    _handle: itertools.count[int]
+    _handle: "itertools.count[int]"
     _event: anyio.abc.Event
     _events: dict[int, tuple[float, float | None, Callable, tuple]]
 

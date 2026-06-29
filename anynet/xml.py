@@ -62,7 +62,7 @@ class TextStream:
 
 
 class XMLTree:
-    children: list[XMLTree]
+    children: "list[XMLTree]"
     attrs: dict[str, str]
     text: str | None
     name: str
@@ -83,19 +83,19 @@ class XMLTree:
                 return True
         return False
     
-    def __getitem__(self, name: str) -> XMLTree:
+    def __getitem__(self, name: str) -> "XMLTree":
         for node in self.children:
             if node.name == name:
                 return node
         raise KeyError(name)
         
-    def __iter__(self) -> Iterator[XMLTree]:
+    def __iter__(self) -> "Iterator[XMLTree]":
         return iter(self.children)
     
     def __len__(self) -> int:
         return len(self.children)
         
-    def find(self, name: str) -> list[XMLTree]:
+    def find(self, name: str) -> "list[XMLTree]":
         nodes = []
         for node in self.children:
             if node.name == name:
@@ -104,7 +104,7 @@ class XMLTree:
     
     def add(
         self, name: str, text: str | None = None, attrs: dict[str, str] = {}
-    ) -> XMLTree:
+    ) -> "XMLTree":
         node = XMLTree(name)
         node.text = text
         node.attrs = dict(attrs)
